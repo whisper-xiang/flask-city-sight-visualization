@@ -19,4 +19,4 @@ if __name__ == '__main__':
             db.session.commit()
             print("默认管理员用户创建完成: admin/admin123")
     
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    app.run(debug=True, host='0.0.0.0', port=5001)

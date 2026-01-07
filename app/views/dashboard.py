@@ -1,4 +1,5 @@
 from flask import Blueprint, render_template, jsonify
+from app import db
 from app.models import Attraction
 from app.utils.data_analyzer import DataAnalyzer
 
@@ -42,4 +43,22 @@ def province_distribution():
 def geo_distribution():
     analyzer = DataAnalyzer()
     data = analyzer.get_geo_distribution()
+    return jsonify(data)
+
+@dashboard_bp.route('/api/price-distribution')
+def price_distribution():
+    analyzer = DataAnalyzer()
+    data = analyzer.get_price_distribution()
+    return jsonify(data)
+
+@dashboard_bp.route('/api/duration-distribution')
+def duration_distribution():
+    analyzer = DataAnalyzer()
+    data = analyzer.get_duration_distribution()
+    return jsonify(data)
+
+@dashboard_bp.route('/api/top-attractions')
+def top_attractions():
+    analyzer = DataAnalyzer()
+    data = analyzer.get_top_attractions()
     return jsonify(data)

@@ -111,21 +111,27 @@ class DatabaseImporter:
     
     def _create_attraction_from_row(self, row) -> Attraction:
         """从DataFrame行创建Attraction对象"""
+        def clean_value(value):
+            """清理值，处理nan和空值"""
+            if pd.isna(value) or value == 'nan' or str(value).strip() == 'nan':
+                return None
+            return str(value) if str(value).strip() != '' else None
+        
         return Attraction(
-            name=str(row.get('name', '')),
-            link=str(row.get('link', '')),
-            address=str(row.get('address', '')),
-            description=str(row.get('description', '')),
-            opening_hours=str(row.get('opening_hours', '')),
-            image_url=str(row.get('image_url', '')),
-            rating=float(row.get('rating', 0)) if pd.notna(row.get('rating')) else 0,
-            recommended_duration=str(row.get('recommended_duration', '')),
-            recommended_season=str(row.get('recommended_season', '')),
-            ticket_price=str(row.get('ticket_price', '')),
-            tips=str(row.get('tips', '')),
-            province=str(row.get('province', '')),
-            city=str(row.get('city', '')),
-            district=str(row.get('district', '')),
+            name=clean_value(row.get('name')) or '未命名景点',
+            link=clean_value(row.get('link')),
+            address=clean_value(row.get('address')),
+            description=clean_value(row.get('description')),
+            opening_hours=clean_value(row.get('opening_hours')),
+            image_url=clean_value(row.get('image_url')),
+            rating=float(row.get('rating', 0)) if pd.notna(row.get('rating')) and str(row.get('rating')).strip() != 'nan' else 0,
+            recommended_duration=clean_value(row.get('recommended_duration')),
+            recommended_season=clean_value(row.get('recommended_season')),
+            ticket_price=clean_value(row.get('ticket_price')) or '暂无信息',
+            tips=clean_value(row.get('tips')),
+            province=clean_value(row.get('province')) or '未知',
+            city=clean_value(row.get('city')) or '未知',
+            district=clean_value(row.get('district')),
             latitude=None,  # 后续可以通过地理编码API获取
             longitude=None
         )

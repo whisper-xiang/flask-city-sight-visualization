@@ -1,0 +1,736 @@
+{% extends "base.html" %} {% block title %}城市景点 - 城市景点可视化系统{%
+endblock %} {% block extra_css %}
+<style>
+  .hero-section {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 3rem 0;
+    margin-bottom: 2rem;
+  }
+
+  .filter-section {
+    background: #f8f9fa;
+    padding: 1.5rem;
+    border-radius: 10px;
+    margin-bottom: 2rem;
+  }
+
+  .attraction-card {
+    border: none;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+    margin-bottom: 1.5rem;
+    overflow: hidden;
+  }
+
+  .attraction-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+  }
+
+  .attraction-image {
+    height: 200px;
+    object-fit: cover;
+    width: 100%;
+  }
+
+  .attraction-content {
+    padding: 1.5rem;
+  }
+
+  .attraction-title {
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: #333;
+  }
+
+  .attraction-location {
+    color: #6c757d;
+    font-size: 0.9rem;
+    margin-bottom: 1rem;
+  }
+
+  .attraction-rating {
+    display: flex;
+    align-items: center;
+    margin-bottom: 1rem;
+  }
+
+  .rating-stars {
+    color: #ffc107;
+    margin-right: 0.5rem;
+  }
+
+  .attraction-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .meta-item {
+    background: #e9ecef;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    color: #495057;
+  }
+
+  .price-free {
+    background: #d4edda;
+    color: #155724;
+  }
+
+  .price-paid {
+    background: #f8d7da;
+    color: #721c24;
+  }
+
+  .pagination-container {
+    display: flex;
+    justify-content: center;
+    margin-top: 2rem;
+  }
+
+  .search-box {
+    position: relative;
+  }
+
+  .search-box input {
+    padding-left: 2.5rem;
+  }
+
+  .search-box .search-icon {
+    position: absolute;
+    left: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #6c757d;
+  }
+
+  .loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+  }
+
+  .no-results {
+    text-align: center;
+    padding: 3rem;
+    color: #6c757d;
+  }
+
+  .stats-summary {
+    background: white;
+    padding: 1rem;
+    border-radius: 10px;
+    margin-bottom: 2rem;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  }
+
+  .stat-item {
+    text-align: center;
+    padding: 0.5rem;
+  }
+
+  .stat-number {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #667eea;
+  }
+
+  .stat-label {
+    font-size: 0.8rem;
+    color: #6c757d;
+  }
+</style>
+{% endblock %} {% block content %}
+<div class="hero-section">
+  <div class="container">
+    <h1 class="text-center mb-3">城市景点浏览</h1>
+    <p class="text-center mb-0">
+      探索全国30,345个精彩景点，发现你的下一个旅行目的地
+    </p>
+  </div>
+</div>
+
+<div class="container">
+  <!-- 统计摘要 -->
+  <div class="stats-summary">
+    <div class="row">
+      <div class="col-md-3 col-6">
+        <div class="stat-item">
+          <div class="stat-number" id="totalCount">-</div>
+          <div class="stat-label">总景点数</div>
+        </div>
+      </div>
+      <div class="col-md-3 col-6">
+        <div class="stat-item">
+          <div class="stat-number" id="avgRating">-</div>
+          <div class="stat-label">平均评分</div>
+        </div>
+      </div>
+      <div class="col-md-3 col-6">
+        <div class="stat-item">
+          <div class="stat-number" id="provinceCount">-</div>
+          <div class="stat-label">覆盖省份</div>
+        </div>
+      </div>
+      <div class="col-md-3 col-6">
+        <div class="stat-item">
+          <div class="stat-number" id="freeCount">-</div>
+          <div class="stat-label">免费景点</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 筛选区域 -->
+  <div class="filter-section">
+    <form id="filterForm">
+      <div class="row g-3">
+        <!-- 搜索框 -->
+        <div class="col-md-4">
+          <div class="search-box">
+            <i class="bi bi-search search-icon"></i>
+            <input
+              type="text"
+              class="form-control"
+              id="searchInput"
+              placeholder="搜索景点名称..."
+            />
+          </div>
+        </div>
+
+        <!-- 省份选择 -->
+        <div class="col-md-2">
+          <select class="form-select" id="provinceSelect">
+            <option value="">选择省份</option>
+          </select>
+        </div>
+
+        <!-- 城市选择 -->
+        <div class="col-md-2">
+          <select class="form-select" id="citySelect">
+            <option value="">选择城市</option>
+          </select>
+        </div>
+
+        <!-- 评分筛选 -->
+        <div class="col-md-2">
+          <select class="form-select" id="ratingSelect">
+            <option value="">评分要求</option>
+            <option value="4.5">4.5分以上</option>
+            <option value="4.0">4.0分以上</option>
+            <option value="3.5">3.5分以上</option>
+            <option value="3.0">3.0分以上</option>
+          </select>
+        </div>
+
+        <!-- 价格筛选 -->
+        <div class="col-md-2">
+          <select class="form-select" id="priceSelect">
+            <option value="">价格筛选</option>
+            <option value="1">免费景点</option>
+            <option value="0">收费景点</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="row mt-3">
+        <div class="col-md-2">
+          <select class="form-select" id="seasonSelect">
+            <option value="">最佳季节</option>
+            <option value="春季">春季</option>
+            <option value="夏季">夏季</option>
+            <option value="秋季">秋季</option>
+            <option value="冬季">冬季</option>
+            <option value="四季皆宜">四季皆宜</option>
+          </select>
+        </div>
+
+        <div class="col-md-2">
+          <select class="form-select" id="durationSelect">
+            <option value="">游玩时长</option>
+            <option value="1-2小时">1-2小时</option>
+            <option value="2-4小时">2-4小时</option>
+            <option value="半天">半天</option>
+            <option value="1天">1天</option>
+            <option value="1-2天">1-2天</option>
+          </select>
+        </div>
+
+        <div class="col-md-8">
+          <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary">
+              <i class="bi bi-search"></i> 搜索
+            </button>
+            <button
+              type="button"
+              class="btn btn-outline-secondary"
+              id="resetBtn"
+            >
+              <i class="bi bi-arrow-clockwise"></i> 重置
+            </button>
+            <button type="button" class="btn btn-outline-info" id="randomBtn">
+              <i class="bi bi-shuffle"></i> 随机推荐
+            </button>
+          </div>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <!-- 景点列表 -->
+  <div id="attractionsList">
+    <div class="loading-overlay" id="loadingOverlay">
+      <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">加载中...</span>
+      </div>
+    </div>
+
+    <div class="row" id="attractionsContainer">
+      <!-- 景点卡片将通过JavaScript动态加载 -->
+    </div>
+
+    <!-- 分页 -->
+    <div class="pagination-container">
+      <nav aria-label="景点分页">
+        <ul class="pagination" id="pagination">
+          <!-- 分页将通过JavaScript动态生成 -->
+        </ul>
+      </nav>
+    </div>
+  </div>
+</div>
+
+<!-- 景点详情模态框 -->
+<div
+  class="modal fade"
+  id="attractionModal"
+  tabindex="-1"
+  aria-labelledby="attractionModalLabel"
+  aria-hidden="true"
+>
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="attractionModalLabel">景点详情</h5>
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="modal"
+          aria-label="Close"
+        ></button>
+      </div>
+      <div class="modal-body" id="modalBody">
+        <!-- 详情内容将通过JavaScript动态加载 -->
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+          关闭
+        </button>
+        <button type="button" class="btn btn-primary" id="favoriteBtn">
+          <i class="bi bi-heart"></i> 收藏
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %} {% block extra_js %}
+<script>
+  let currentPage = 1;
+  let currentFilters = {};
+
+  document.addEventListener("DOMContentLoaded", function () {
+    // 加载统计数据
+    loadStatistics();
+
+    // 加载省份选项
+    loadProvinces();
+
+    // 加载景点列表
+    loadAttractions();
+
+    // 绑定事件
+    bindEvents();
+  });
+
+  // 绑定事件
+  function bindEvents() {
+    // 表单提交
+    document
+      .getElementById("filterForm")
+      .addEventListener("submit", function (e) {
+        e.preventDefault();
+        currentPage = 1;
+        updateFilters();
+        loadAttractions();
+      });
+
+    // 省份变化
+    document
+      .getElementById("provinceSelect")
+      .addEventListener("change", function () {
+        loadCities(this.value);
+      });
+
+    // 重置按钮
+    document.getElementById("resetBtn").addEventListener("click", function () {
+      resetFilters();
+    });
+
+    // 随机推荐
+    document.getElementById("randomBtn").addEventListener("click", function () {
+      randomRecommend();
+    });
+
+    // 搜索框实时搜索
+    let searchTimeout;
+    document
+      .getElementById("searchInput")
+      .addEventListener("input", function () {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => {
+          currentPage = 1;
+          updateFilters();
+          loadAttractions();
+        }, 500);
+      });
+  }
+
+  // 加载统计数据
+  function loadStatistics() {
+    apiRequest("/dashboard/api/statistics")
+      .then((data) => {
+        document.getElementById("totalCount").textContent = formatNumber(
+          data.total_attractions
+        );
+        document.getElementById("avgRating").textContent = data.avg_rating;
+        document.getElementById("provinceCount").textContent = Object.keys(
+          data.province_distribution || {}
+        ).length;
+        document.getElementById("freeCount").textContent = formatNumber(
+          data.free_attractions || 0
+        );
+      })
+      .catch((error) => {
+        console.error("加载统计数据失败:", error);
+      });
+  }
+
+  // 加载省份
+  function loadProvinces() {
+    apiRequest("/city/api/provinces")
+      .then((data) => {
+        const select = document.getElementById("provinceSelect");
+        select.innerHTML = '<option value="">选择省份</option>';
+        data.forEach((province) => {
+          if (province) {
+            select.innerHTML += `<option value="${province}">${province}</option>`;
+          }
+        });
+      })
+      .catch((error) => {
+        console.error("加载省份失败:", error);
+      });
+  }
+
+  // 加载城市
+  function loadCities(province) {
+    const citySelect = document.getElementById("citySelect");
+    citySelect.innerHTML = '<option value="">选择城市</option>';
+
+    if (!province) return;
+
+    apiRequest("/city/api/cities?province=" + encodeURIComponent(province))
+      .then((data) => {
+        data.forEach((city) => {
+          if (city) {
+            citySelect.innerHTML += `<option value="${city}">${city}</option>`;
+          }
+        });
+      })
+      .catch((error) => {
+        console.error("加载城市失败:", error);
+      });
+  }
+
+  // 更新筛选条件
+  function updateFilters() {
+    currentFilters = {
+      search: document.getElementById("searchInput").value,
+      province: document.getElementById("provinceSelect").value,
+      city: document.getElementById("citySelect").value,
+      rating_min: document.getElementById("ratingSelect").value,
+      is_free: document.getElementById("priceSelect").value,
+      season: document.getElementById("seasonSelect").value,
+      duration: document.getElementById("durationSelect").value,
+    };
+  }
+
+  // 重置筛选
+  function resetFilters() {
+    document.getElementById("filterForm").reset();
+    document.getElementById("citySelect").innerHTML =
+      '<option value="">选择城市</option>';
+    currentFilters = {};
+    currentPage = 1;
+    loadAttractions();
+  }
+
+  // 随机推荐
+  function randomRecommend() {
+    // 生成随机筛选条件
+    const provinces = [
+      "北京",
+      "上海",
+      "广州",
+      "深圳",
+      "杭州",
+      "成都",
+      "西安",
+      "重庆",
+    ];
+    const randomProvince =
+      provinces[Math.floor(Math.random() * provinces.length)];
+
+    document.getElementById("provinceSelect").value = randomProvince;
+    loadCities(randomProvince);
+
+    setTimeout(() => {
+      const cities = Array.from(document.getElementById("citySelect").options)
+        .filter((option) => option.value)
+        .map((option) => option.value);
+
+      if (cities.length > 0) {
+        const randomCity = cities[Math.floor(Math.random() * cities.length)];
+        document.getElementById("citySelect").value = randomCity;
+      }
+
+      document.getElementById("ratingSelect").value = "4.0";
+
+      currentPage = 1;
+      updateFilters();
+      loadAttractions();
+    }, 500);
+  }
+
+  // 加载景点列表
+  function loadAttractions() {
+    showLoading();
+
+    // 构建查询参数
+    const params = new URLSearchParams({
+      page: currentPage,
+      ...currentFilters,
+    });
+
+    apiRequest("/city/attractions?" + params.toString())
+      .then((data) => {
+        if (data.error) {
+          throw new Error(data.error);
+        }
+        renderAttractions(data.attractions);
+        renderPagination(data.pagination);
+      })
+      .catch((error) => {
+        console.error("加载景点失败:", error);
+        let errorMessage = "加载景点失败，请稍后重试";
+
+        // 如果是服务器返回的错误信息，显示具体错误
+        if (error.message && !error.message.includes("HTTP error")) {
+          errorMessage = `加载景点失败: ${error.message}`;
+        }
+
+        showError(errorMessage);
+      })
+      .finally(() => {
+        hideLoading();
+      });
+  }
+
+  // 渲染景点卡片
+  function renderAttractions(attractions) {
+    const container = document.getElementById("attractionsContainer");
+
+    if (!attractions || attractions.length === 0) {
+      container.innerHTML = `
+            <div class="col-12">
+                <div class="no-results">
+                    <i class="bi bi-search" style="font-size: 3rem;"></i>
+                    <h4>没有找到符合条件的景点</h4>
+                    <p>请尝试调整筛选条件或搜索关键词</p>
+                </div>
+            </div>
+        `;
+      return;
+    }
+
+    container.innerHTML = attractions
+      .map(
+        (attraction) => `
+        <div class="col-md-6 col-lg-4">
+            <div class="attraction-card">
+                ${
+                  attraction.image_url &&
+                  attraction.image_url !== "nan" &&
+                  attraction.image_url.trim() !== ""
+                    ? `<img src="${attraction.image_url}" class="attraction-image" alt="${attraction.name}">`
+                    : `<div class="attraction-image d-flex align-items-center justify-content-center bg-light">
+                        <i class="bi bi-image" style="font-size: 3rem; color: #6c757d;"></i>
+                    </div>`
+                }
+                <div class="attraction-content">
+                    <h5 class="attraction-title">${attraction.name}</h5>
+                    <div class="attraction-location">
+                        <i class="bi bi-geo-alt"></i> ${
+                          attraction.province || ""
+                        } ${attraction.city || ""} ${attraction.district || ""}
+                    </div>
+                    <div class="attraction-rating">
+                        <span class="rating-stars">${formatRating(
+                          attraction.rating
+                        )}</span>
+                        <span class="text-muted">(${
+                          attraction.rating || "暂无评分"
+                        })</span>
+                    </div>
+                    <div class="attraction-meta">
+                        <span class="meta-item ${
+                          attraction.ticket_price === "免费"
+                            ? "price-free"
+                            : "price-paid"
+                        }">
+                            ${attraction.ticket_price || "暂无信息"}
+                        </span>
+                        <span class="meta-item">
+                            <i class="bi bi-clock"></i> ${
+                              attraction.recommended_duration || "暂无"
+                            }
+                        </span>
+                        <span class="meta-item">
+                            <i class="bi bi-calendar"></i> ${
+                              attraction.recommended_season || "暂无"
+                            }
+                        </span>
+                    </div>
+                    <div class="mt-3">
+                        <button class="btn btn-sm btn-outline-primary" onclick="showAttractionDetail(${
+                          attraction.id
+                        })">
+                            <i class="bi bi-eye"></i> 查看详情
+                        </button>
+                        <a href="${
+                          attraction.link || "#"
+                        }" class="btn btn-sm btn-outline-info" target="_blank">
+                            <i class="bi bi-link"></i> 官网
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `
+      )
+      .join("");
+  }
+
+  // 渲染分页
+  function renderPagination(pagination) {
+    const paginationContainer = document.getElementById("pagination");
+
+    if (!pagination || pagination.pages <= 1) {
+      paginationContainer.innerHTML = "";
+      return;
+    }
+
+    let html = "";
+
+    // 上一页
+    if (pagination.has_prev) {
+      html += `<li class="page-item">
+            <a class="page-link" href="#" onclick="changePage(${pagination.prev_num}); return false;">
+                <i class="bi bi-chevron-left"></i>
+            </a>
+        </li>`;
+    }
+
+    // 页码
+    for (let i = 1; i <= pagination.pages; i++) {
+      if (i === pagination.page) {
+        html += `<li class="page-item active">
+                <span class="page-link">${i}</span>
+            </li>`;
+      } else if (
+        Math.abs(i - pagination.page) <= 2 ||
+        i === 1 ||
+        i === pagination.pages
+      ) {
+        html += `<li class="page-item">
+                <a class="page-link" href="#" onclick="changePage(${i}); return false;">${i}</a>
+            </li>`;
+      } else if (Math.abs(i - pagination.page) === 3) {
+        html += `<li class="page-item disabled">
+                <span class="page-link">...</span>
+            </li>`;
+      }
+    }
+
+    // 下一页
+    if (pagination.has_next) {
+      html += `<li class="page-item">
+            <a class="page-link" href="#" onclick="changePage(${pagination.next_num}); return false;">
+                <i class="bi bi-chevron-right"></i>
+            </a>
+        </li>`;
+    }
+
+    paginationContainer.innerHTML = html;
+  }
+
+  // 切换页面
+  function changePage(page) {
+    currentPage = page;
+    loadAttractions();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  // 显示景点详情
+  function showAttractionDetail(id) {
+    // 直接跳转到景点详情页面
+    window.location.href = `/city/attraction/${id}`;
+  }
+
+  // 显示加载状态
+  function showLoading() {
+    document.getElementById("loadingOverlay").style.display = "flex";
+  }
+
+  // 隐藏加载状态
+  function hideLoading() {
+    document.getElementById("loadingOverlay").style.display = "none";
+  }
+
+  // 显示错误信息
+  function showError(message) {
+    const container = document.getElementById("attractionsContainer");
+    container.innerHTML = `
+        <div class="col-12">
+            <div class="alert alert-danger" role="alert">
+                <i class="bi bi-exclamation-triangle"></i> ${message}
+            </div>
+        </div>
+    `;
+  }
+</script>
+{% endblock %}

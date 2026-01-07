@@ -1,0 +1,921 @@
+{% extends "base.html" %} {% block title %}{{ attraction.name }} - 景点详情{%
+endblock %} {% block extra_css %}
+<style>
+  .hero-image {
+    height: 400px;
+    object-fit: cover;
+    width: 100%;
+    border-radius: 10px;
+  }
+
+  .detail-section {
+    background: white;
+    border-radius: 10px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  }
+
+  .rating-display {
+    font-size: 2rem;
+    color: #ffc107;
+    margin-bottom: 1rem;
+  }
+
+  .info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+  }
+
+  .info-item {
+    padding: 1rem;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border-left: 4px solid #667eea;
+  }
+
+  .info-label {
+    font-weight: 600;
+    color: #495057;
+    margin-bottom: 0.5rem;
+  }
+
+  .info-value {
+    color: #333;
+  }
+
+  .description-section {
+    line-height: 1.6;
+    color: #495057;
+  }
+
+  .price-tag {
+    display: inline-block;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-weight: 600;
+    margin-bottom: 1rem;
+  }
+
+  .price-free {
+    background: #d4edda;
+    color: #155724;
+  }
+
+  .price-paid {
+    background: #f8d7da;
+    color: #721c24;
+  }
+
+  .action-buttons {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-top: 2rem;
+  }
+
+  .related-attractions {
+    margin-top: 3rem;
+  }
+
+  .related-card {
+    border: none;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s ease-in-out;
+    margin-bottom: 1rem;
+  }
+
+  .related-card:hover {
+    transform: translateY(-3px);
+  }
+
+  .related-image {
+    height: 150px;
+    object-fit: cover;
+    width: 100%;
+  }
+
+  .breadcrumb-section {
+    background: #f8f9fa;
+    padding: 1rem 0;
+    margin-bottom: 2rem;
+  }
+
+  /* 评价相关样式 */
+  .review-stats {
+    background: #f8f9fa;
+    padding: 1.5rem;
+    border-radius: 8px;
+    margin-bottom: 2rem;
+  }
+
+  .rating-display-large {
+    font-size: 3rem;
+    font-weight: bold;
+    color: #ffc107;
+    margin-bottom: 0.5rem;
+  }
+
+  .review-count-large {
+    font-size: 2rem;
+    font-weight: bold;
+    color: #667eea;
+    margin-bottom: 0.5rem;
+  }
+
+  .review-item {
+    border-bottom: 1px solid #e9ecef;
+    padding: 1.5rem 0;
+  }
+
+  .review-item:last-child {
+    border-bottom: none;
+  }
+
+  .review-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+  }
+
+  .review-author {
+    font-weight: 600;
+    color: #333;
+  }
+
+  .review-date {
+    color: #6c757d;
+    font-size: 0.9rem;
+  }
+
+  .review-rating {
+    color: #ffc107;
+    margin-bottom: 0.5rem;
+  }
+
+  .review-content {
+    color: #495057;
+    line-height: 1.6;
+    margin-bottom: 1rem;
+  }
+
+  .review-actions {
+    display: flex;
+    gap: 1rem;
+  }
+
+  .review-actions button {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.8rem;
+  }
+
+  .rating-input {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+  }
+
+  .rating-input .star {
+    font-size: 1.5rem;
+    color: #ddd;
+    cursor: pointer;
+    transition: color 0.2s;
+  }
+
+  .rating-input .star:hover,
+  .rating-input .star.active {
+    color: #ffc107;
+  }
+</style>
+{% endblock %} {% block content %}
+<!-- 面包屑导航 -->
+<div class="breadcrumb-section">
+  <div class="container">
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb mb-0">
+        <li class="breadcrumb-item">
+          <a href="{{ url_for('main.index') }}">首页</a>
+        </li>
+        <li class="breadcrumb-item">
+          <a href="{{ url_for('city.city_index') }}">城市景点</a>
+        </li>
+        <li class="breadcrumb-item active" aria-current="page">
+          {{ attraction.name }}
+        </li>
+      </ol>
+    </nav>
+  </div>
+</div>
+
+<div class="container">
+  <!-- 景点头部信息 -->
+  <div class="detail-section">
+    <div class="row">
+      <div class="col-lg-8">
+        <h1 class="mb-3">{{ attraction.name }}</h1>
+
+        <!-- 评分显示 -->
+        <div class="rating-display">
+          {{ format_rating(attraction.rating) }}
+          <span class="text-muted fs-6"
+            >({{ attraction.rating or '暂无评分' }})</span
+          >
+        </div>
+
+        <!-- 位置信息 -->
+        <div class="d-flex align-items-center mb-3">
+          <i class="bi bi-geo-alt text-primary me-2"></i>
+          <span
+            >{{ attraction.province or '' }} {{ attraction.city or '' }} {{
+            attraction.district or '' }}</span
+          >
+        </div>
+
+        <!-- 地址 -->
+        {% if attraction.address %}
+        <div class="d-flex align-items-center mb-3">
+          <i class="bi bi-pin-map text-primary me-2"></i>
+          <span>{{ attraction.address }}</span>
+        </div>
+        {% endif %}
+
+        <!-- 价格标签 -->
+        <div
+          class="price-tag {{ 'price-free' if attraction.ticket_price == '免费' else 'price-paid' }}"
+        >
+          <i class="bi bi-tag me-1"></i> {{ attraction.ticket_price or
+          '暂无信息' }}
+        </div>
+      </div>
+
+      <div class="col-lg-4">
+        {% if attraction.image_url and attraction.image_url != 'nan' and
+        attraction.image_url|trim != '' %}
+        <img
+          src="{{ attraction.image_url }}"
+          class="hero-image"
+          alt="{{ attraction.name }}"
+        />
+        {% else %}
+        <div
+          class="hero-image d-flex align-items-center justify-content-center bg-light"
+        >
+          <i class="bi bi-image" style="font-size: 4rem; color: #6c757d"></i>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- 详细信息 -->
+  <div class="detail-section">
+    <h2 class="mb-4">景点信息</h2>
+
+    <div class="info-grid">
+      <div class="info-item">
+        <div class="info-label"><i class="bi bi-clock me-1"></i>开放时间</div>
+        <div class="info-value">
+          {{ attraction.opening_hours or '暂无信息' }}
+        </div>
+      </div>
+
+      <div class="info-item">
+        <div class="info-label">
+          <i class="bi bi-hourglass me-1"></i>建议游玩时长
+        </div>
+        <div class="info-value">
+          {{ attraction.recommended_duration or '暂无信息' }}
+        </div>
+      </div>
+
+      <div class="info-item">
+        <div class="info-label">
+          <i class="bi bi-calendar me-1"></i>最佳游览季节
+        </div>
+        <div class="info-value">
+          {{ attraction.recommended_season or '暂无信息' }}
+        </div>
+      </div>
+
+      <div class="info-item">
+        <div class="info-label"><i class="bi bi-tag me-1"></i>门票价格</div>
+        <div class="info-value">
+          {{ attraction.ticket_price or '暂无信息' }}
+        </div>
+      </div>
+    </div>
+
+    <!-- 景点介绍 -->
+    {% if attraction.description %}
+    <div class="description-section">
+      <h3 class="mb-3">景点介绍</h3>
+      <div class="content">{{ attraction.description | safe }}</div>
+    </div>
+    {% endif %}
+
+    <!-- 小贴士 -->
+    {% if attraction.tips %}
+    <div class="mt-4">
+      <h4 class="mb-3">
+        <i class="bi bi-lightbulb text-warning me-2"></i>游览小贴士
+      </h4>
+      <div class="alert alert-info">{{ attraction.tips }}</div>
+    </div>
+    {% endif %}
+
+    <!-- 操作按钮 -->
+    <div class="action-buttons">
+      {% if attraction.link %}
+      <a href="{{ attraction.link }}" class="btn btn-primary" target="_blank">
+        <i class="bi bi-link me-2"></i>官方网站
+      </a>
+      {% endif %}
+
+      <button
+        class="btn btn-outline-success"
+        id="favoriteBtn"
+        onclick="toggleFavorite()"
+      >
+        <i class="bi bi-heart me-2" id="favoriteIcon"></i>
+        <span id="favoriteText">收藏景点</span>
+      </button>
+
+      <button class="btn btn-outline-info" onclick="shareAttraction()">
+        <i class="bi bi-share me-2"></i>分享
+      </button>
+
+      <button class="btn btn-outline-secondary" onclick="showOnMap()">
+        <i class="bi bi-map me-2"></i>查看地图
+      </button>
+    </div>
+  </div>
+
+  <!-- 相关景点推荐 -->
+  <div class="related-attractions">
+    <div class="detail-section">
+      <h2 class="mb-4">相关景点推荐</h2>
+      <div class="row" id="relatedAttractions">
+        <!-- 相关景点将通过JavaScript动态加载 -->
+      </div>
+    </div>
+  </div>
+
+  <!-- 用户评价 -->
+  <div class="reviews-section">
+    <div class="detail-section">
+      <h2 class="mb-4">用户评价</h2>
+
+      <!-- 评价统计 -->
+      <div class="review-stats mb-4" id="reviewStats">
+        <div class="row">
+          <div class="col-md-4">
+            <div class="text-center">
+              <div class="rating-display-large" id="avgRating">-</div>
+              <div class="text-muted">平均评分</div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="text-center">
+              <div class="review-count-large" id="totalReviews">-</div>
+              <div class="text-muted">评价总数</div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <button
+              class="btn btn-primary w-100"
+              id="writeReviewBtn"
+              onclick="showReviewModal()"
+            >
+              <i class="bi bi-star me-2"></i>写评价
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 评价列表 -->
+      <div id="reviewsList">
+        <!-- 评价将通过JavaScript动态加载 -->
+      </div>
+
+      <!-- 分页 -->
+      <nav aria-label="评价分页" id="reviewsPagination">
+        <!-- 分页将通过JavaScript动态生成 -->
+      </nav>
+    </div>
+  </div>
+  {% endblock %}
+
+  <!-- 评价模态框 -->
+  <div
+    class="modal fade"
+    id="reviewModal"
+    tabindex="-1"
+    aria-labelledby="reviewModalLabel"
+    aria-hidden="true"
+  >
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="reviewModalLabel">写评价</h5>
+          <button
+            type="button"
+            class="btn-close"
+            data-bs-dismiss="modal"
+            aria-label="Close"
+          ></button>
+        </div>
+        <div class="modal-body">
+          <form id="reviewForm">
+            <div class="mb-3">
+              <label for="reviewRating" class="form-label">评分</label>
+              <div class="rating-input" id="ratingInput">
+                <span class="star" data-rating="1">★</span>
+                <span class="star" data-rating="2">★</span>
+                <span class="star" data-rating="3">★</span>
+                <span class="star" data-rating="4">★</span>
+                <span class="star" data-rating="5">★</span>
+              </div>
+              <input type="hidden" id="reviewRating" name="rating" required />
+            </div>
+            <div class="mb-3">
+              <label for="reviewContent" class="form-label">评价内容</label>
+              <textarea
+                class="form-control"
+                id="reviewContent"
+                name="content"
+                rows="4"
+                placeholder="分享您的游览体验..."
+              ></textarea>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button
+            type="button"
+            class="btn btn-secondary"
+            data-bs-dismiss="modal"
+          >
+            取消
+          </button>
+          <button
+            type="button"
+            class="btn btn-primary"
+            onclick="submitReview()"
+          >
+            提交评价
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% block extra_js %}
+  <script>
+    let isFavorite = false;
+    const attractionId = parseInt('{{ attraction.id or "0" }}');
+
+    // 定义坐标变量
+    const attractionLatitude = {{ attraction.latitude|default('null') }};
+    const attractionLongitude = {{ attraction.longitude|default('null') }};
+
+    document.addEventListener("DOMContentLoaded", function () {
+      // 加载相关景点
+      loadRelatedAttractions();
+
+      // 检查收藏状态
+      checkFavoriteStatus();
+
+      // 加载评价列表
+      loadReviews();
+
+      // 初始化评分组件
+      initRatingComponent();
+    });
+
+    // 检查收藏状态
+    function checkFavoriteStatus() {
+      fetch(`/city/api/favorites/check/${attractionId}`, {
+        headers: {
+          "X-Requested-With": "XMLHttpRequest",
+        },
+      })
+        .then((response) => response.json())
+        .then((data) => {
+          if (data.is_favorite) {
+            isFavorite = true;
+            updateFavoriteButton(true);
+          }
+        })
+        .catch((error) => {
+          console.log("检查收藏状态失败:", error);
+        });
+    }
+
+    // 切换收藏状态
+    function toggleFavorite() {
+      if (isFavorite) {
+        removeFavorite();
+      } else {
+        addFavorite();
+      }
+    }
+
+    // 添加收藏
+    function addFavorite() {
+      fetch("/city/api/favorites/add", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Requested-With": "XMLHttpRequest",
+        },
+        body: JSON.stringify({
+          attraction_id: attractionId,
+        }),
+      })
+        .then((response) => response.json())
+        .then((data) => {
+          if (data.error) {
+            alert(data.error);
+          } else {
+            isFavorite = true;
+            updateFavoriteButton(true);
+            showMessage("收藏成功！", "success");
+          }
+        })
+        .catch((error) => {
+          console.error("收藏失败:", error);
+          alert("收藏失败，请稍后重试");
+        });
+    }
+
+    // 取消收藏
+    function removeFavorite() {
+      fetch("/city/api/favorites/remove", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Requested-With": "XMLHttpRequest",
+        },
+        body: JSON.stringify({
+          attraction_id: attractionId,
+        }),
+      })
+        .then((response) => response.json())
+        .then((data) => {
+          if (data.error) {
+            alert(data.error);
+          } else {
+            isFavorite = false;
+            updateFavoriteButton(false);
+            showMessage("已取消收藏", "info");
+          }
+        })
+        .catch((error) => {
+          console.error("取消收藏失败:", error);
+          alert("取消收藏失败，请稍后重试");
+        });
+    }
+
+    // 更新收藏按钮状态
+    function updateFavoriteButton(favorited) {
+      const btn = document.getElementById("favoriteBtn");
+      const icon = document.getElementById("favoriteIcon");
+      const text = document.getElementById("favoriteText");
+
+      if (favorited) {
+        btn.className = "btn btn-success";
+        icon.className = "bi bi-heart-fill me-2";
+        text.textContent = "已收藏";
+      } else {
+        btn.className = "btn btn-outline-success";
+        icon.className = "bi bi-heart me-2";
+        text.textContent = "收藏景点";
+      }
+    }
+
+    // 显示消息提示
+    function showMessage(message, type) {
+      // 创建提示元素
+      const alert = document.createElement("div");
+      alert.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+      alert.style.cssText =
+        "top: 20px; right: 20px; z-index: 9999; min-width: 250px;";
+      alert.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      `;
+
+      document.body.appendChild(alert);
+
+      // 3秒后自动消失
+      setTimeout(() => {
+        if (alert.parentNode) {
+          alert.parentNode.removeChild(alert);
+        }
+      }, 3000);
+    }
+
+    // 加载相关景点
+    function loadRelatedAttractions() {
+      const province = "{{ attraction.province }}";
+      const city = "{{ attraction.city }}";
+      const currentId = parseInt('{{ attraction.id or "0" }}');
+
+      let apiUrl = "/city/attractions?limit=6";
+      if (province) {
+        apiUrl += "&province=" + encodeURIComponent(province);
+      }
+      if (city) {
+        apiUrl += "&city=" + encodeURIComponent(city);
+      }
+
+      apiRequest(apiUrl)
+        .then((data) => {
+          renderRelatedAttractions(
+            data.attractions.filter((a) => a.id !== currentId).slice(0, 4)
+          );
+        })
+        .catch((error) => {
+          console.error("加载相关景点失败:", error);
+        });
+    }
+
+    // 渲染相关景点
+    function renderRelatedAttractions(attractions) {
+      const container = document.getElementById("relatedAttractions");
+
+      if (!attractions || attractions.length === 0) {
+        container.innerHTML =
+          '<div class="col-12 text-center text-muted">暂无相关景点推荐</div>';
+        return;
+      }
+
+      container.innerHTML = attractions
+        .map(
+          (attraction) => `
+            <div class="col-md-6 col-lg-3">
+                <div class="card related-card">
+                    ${
+                      attraction.image_url &&
+                      attraction.image_url !== "nan" &&
+                      attraction.image_url.trim() !== ""
+                        ? `<img src="${attraction.image_url}" class="related-image" alt="${attraction.name}">`
+                        : `<div class="related-image d-flex align-items-center justify-content-center bg-light">
+                            <i class="bi bi-image" style="font-size: 2rem; color: #6c757d;"></i>
+                        </div>`
+                    }
+                    <div class="card-body">
+                        <h6 class="card-title">${attraction.name}</h6>
+                        <div class="text-muted small mb-2">
+                            <i class="bi bi-geo-alt"></i> ${attraction.city || ""}
+                        </div>
+                        <div class="rating-stars small mb-2">
+                            ${formatRating(attraction.rating)}
+                        </div>
+                        <a href="/city/attraction/${
+                          attraction.id
+                        }" class="btn btn-sm btn-outline-primary">
+                            查看详情
+                        </a>
+                    </div>
+                </div>
+            </div>
+        `
+        )
+        .join("");
+    }
+
+    // 在地图上查看
+    function showOnMap() {
+      const address = "{{ attraction.address }}";
+      const name = "{{ attraction.name }}";
+
+      if (attractionLatitude && attractionLongitude) {
+        // 如果有精确坐标，使用高德地图
+        const mapUrl = "https://www.amap.com/search?query=" + encodeURIComponent(name) + "&city=&geoobj=" + attractionLongitude + "|" + attractionLatitude + "&zoom=12";
+        window.open(mapUrl, "_blank");
+      } else if (address) {
+        // 如果只有地址，使用百度地图搜索
+        const mapUrl = "https://map.baidu.com/search/" + encodeURIComponent(name) + "?query=" + encodeURIComponent(address);
+        window.open(mapUrl, "_blank");
+      } else {
+        // 如果都没有，使用名称搜索
+        const mapUrl = "https://map.baidu.com/search/" + encodeURIComponent(name);
+        window.open(mapUrl, "_blank");
+      }
+    }
+
+    // 分享景点
+    function shareAttraction() {
+      const url = window.location.href;
+      const title = document.title;
+
+      if (navigator.share) {
+        navigator.share({
+          title: title,
+          url: url,
+        });
+      } else {
+        // 复制链接到剪贴板
+        navigator.clipboard.writeText(url).then(() => {
+          showMessage('链接已复制到剪贴板', 'success');
+        });
+      }
+    }
+
+    // 评价相关功能
+    let currentReviewPage = 1;
+    let selectedRating = 0;
+
+    // 初始化评分组件
+    function initRatingComponent() {
+      const stars = document.querySelectorAll('#ratingInput .star');
+      stars.forEach(star => {
+        star.addEventListener('click', function() {
+          selectedRating = parseInt(this.dataset.rating);
+          updateRatingDisplay(selectedRating);
+          document.getElementById('reviewRating').value = selectedRating;
+        });
+
+        star.addEventListener('mouseenter', function() {
+          const rating = parseInt(this.dataset.rating);
+          updateRatingDisplay(rating);
+        });
+      });
+
+      document.getElementById('ratingInput').addEventListener('mouseleave', function() {
+        updateRatingDisplay(selectedRating);
+      });
+    }
+
+    // 更新评分显示
+    function updateRatingDisplay(rating) {
+      const stars = document.querySelectorAll('#ratingInput .star');
+      stars.forEach((star, index) => {
+        if (index < rating) {
+          star.classList.add('active');
+        } else {
+          star.classList.remove('active');
+        }
+      });
+    }
+
+    // 显示评价模态框
+    function showReviewModal() {
+      // 重置表单
+      selectedRating = 0;
+      updateRatingDisplay(0);
+      document.getElementById('reviewForm').reset();
+
+      // 显示模态框
+      const modal = new bootstrap.Modal(document.getElementById('reviewModal'));
+      modal.show();
+    }
+
+    // 提交评价
+    function submitReview() {
+      const rating = selectedRating;
+      const content = document.getElementById('reviewContent').value.trim();
+
+      if (!rating) {
+        showMessage('请选择评分', 'warning');
+        return;
+      }
+
+      if (!content) {
+        showMessage('请填写评价内容', 'warning');
+        return;
+      }
+
+      fetch('/city/api/reviews/add', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify({
+          attraction_id: attractionId,
+          rating: rating,
+          content: content
+        })
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.error) {
+          showMessage(data.error, 'error');
+        } else {
+          showMessage('评价提交成功！', 'success');
+
+          // 关闭模态框
+          const modal = bootstrap.Modal.getInstance(document.getElementById('reviewModal'));
+          modal.hide();
+
+          // 重新加载评价列表
+          loadReviews();
+        }
+      })
+      .catch(error => {
+        console.error('提交评价失败:', error);
+        showMessage('提交评价失败，请稍后重试', 'error');
+      });
+    }
+
+    // 加载评价列表
+    function loadReviews(page = 1) {
+      fetch(`/city/api/reviews/${attractionId}?page=${page}`, {
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest'
+        }
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.error) {
+          console.error('加载评价失败:', data.error);
+          return;
+        }
+
+        // 更新统计信息
+        updateReviewStats(data.stats);
+
+        // 渲染评价列表
+        renderReviews(data.reviews);
+
+        // 渲染分页
+        renderPagination(data.pagination);
+      })
+      .catch(error => {
+        console.error('加载评价失败:', error);
+      });
+    }
+
+    // 更新评价统计
+    function updateReviewStats(stats) {
+      document.getElementById('avgRating').textContent = stats.avg_rating.toFixed(1);
+      document.getElementById('totalReviews').textContent = stats.total_reviews;
+    }
+
+    // 渲染评价列表
+    function renderReviews(reviews) {
+      const container = document.getElementById('reviewsList');
+
+      if (!reviews || reviews.length === 0) {
+        container.innerHTML = `
+          <div class="text-center text-muted py-4">
+            <i class="bi bi-chat-square-text" style="font-size: 3rem;"></i>
+            <p class="mt-2">暂无评价，快来发表第一个评价吧！</p>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = reviews.map(review => `
+        <div class="review-item">
+          <div class="review-header">
+            <div>
+              <div class="review-author">${review.user.username}</div>
+              <div class="review-rating">${'★'.repeat(Math.floor(review.rating))}${'☆'.repeat(5-Math.floor(review.rating))}</div>
+            </div>
+            <div class="review-date">${new Date(review.created_at).toLocaleDateString()}</div>
+          </div>
+          <div class="review-content">${review.content}</div>
+        </div>
+      `).join('');
+    }
+
+    // 渲染分页
+    function renderPagination(pagination) {
+      const container = document.getElementById('reviewsPagination');
+
+      if (pagination.pages <= 1) {
+        container.innerHTML = '';
+        return;
+      }
+
+      let paginationHtml = '<ul class="pagination justify-content-center">';
+
+      // 上一页
+      if (pagination.has_prev) {
+        paginationHtml += `<li class="page-item"><a class="page-link" href="#" onclick="loadReviews(${pagination.prev_num}); return false;">上一页</a></li>`;
+      }
+
+      // 页码
+      for (let i = 1; i <= pagination.pages; i++) {
+        const active = i === pagination.page ? 'active' : '';
+        paginationHtml += `<li class="page-item ${active}"><a class="page-link" href="#" onclick="loadReviews(${i}); return false;">${i}</a></li>`;
+      }
+
+      // 下一页
+      if (pagination.has_next) {
+        paginationHtml += `<li class="page-item"><a class="page-link" href="#" onclick="loadReviews(${pagination.next_num}); return false;">下一页</a></li>`;
+      }
+
+      paginationHtml += '</ul>';
+      container.innerHTML = paginationHtml;
+    }
+  </script>
+  {% endblock %}
+</div>

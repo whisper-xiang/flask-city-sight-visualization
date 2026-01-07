@@ -1,0 +1,962 @@
+{% extends "base.html" %} {% block title %}可视化大屏 - 城市景点可视化系统{%
+endblock %} {% block extra_css %}
+<style>
+  .dashboard-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 3rem 0;
+    margin-bottom: 2rem;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .dashboard-header::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="25" cy="25" r="1" fill="rgba(255,255,255,0.1)"/><circle cx="75" cy="75" r="1" fill="rgba(255,255,255,0.1)"/><circle cx="50" cy="10" r="0.5" fill="rgba(255,255,255,0.05)"/><circle cx="10" cy="50" r="0.5" fill="rgba(255,255,255,0.05)"/><circle cx="90" cy="30" r="0.5" fill="rgba(255,255,255,0.05)"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+    opacity: 0.3;
+    pointer-events: none;
+  }
+
+  .dashboard-header h1 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    position: relative;
+    z-index: 1;
+  }
+
+  .dashboard-header p {
+    font-size: 1.1rem;
+    opacity: 0.9;
+    position: relative;
+    z-index: 1;
+  }
+
+  .stat-card {
+    background: white;
+    border-radius: 16px;
+    padding: 2rem;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    margin-bottom: 1.5rem;
+    position: relative;
+    overflow: hidden;
+    border: 1px solid rgba(102, 126, 234, 0.1);
+  }
+
+  .stat-card::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #667eea, #764ba2);
+    transform: scaleX(0);
+    transition: transform 0.3s ease;
+  }
+
+  .stat-card:hover {
+    transform: translateY(-8px) scale(1.02);
+    box-shadow: 0 20px 40px rgba(102, 126, 234, 0.2);
+    border-color: rgba(102, 126, 234, 0.3);
+  }
+
+  .stat-card:hover::before {
+    transform: scaleX(1);
+  }
+
+  .stat-number {
+    font-size: 2.8rem;
+    font-weight: 800;
+    color: #667eea;
+    margin-bottom: 0.5rem;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1;
+  }
+
+  .stat-label {
+    color: #6c757d;
+    font-size: 0.95rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .chart-container {
+    background: white;
+    border-radius: 16px;
+    padding: 2rem;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+    margin-bottom: 2rem;
+    position: relative;
+    overflow: hidden;
+    border: 1px solid rgba(102, 126, 234, 0.1);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .chart-container:hover {
+    box-shadow: 0 15px 35px rgba(102, 126, 234, 0.15);
+    border-color: rgba(102, 126, 234, 0.2);
+  }
+
+  .chart-title {
+    font-size: 1.3rem;
+    font-weight: 700;
+    margin-bottom: 1.5rem;
+    color: #2c3e50;
+    position: relative;
+    padding-left: 1rem;
+  }
+
+  .chart-title::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 4px;
+    height: 20px;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    border-radius: 2px;
+  }
+
+  .chart-box {
+    height: 350px;
+    position: relative;
+  }
+
+  .loading-spinner {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 350px;
+    background: linear-gradient(
+      135deg,
+      rgba(102, 126, 234, 0.05),
+      rgba(118, 75, 162, 0.05)
+    );
+    border-radius: 8px;
+    position: relative;
+  }
+
+  .loading-spinner::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(
+      45deg,
+      transparent 30%,
+      rgba(255, 255, 255, 0.1) 50%,
+      transparent 70%
+    );
+    animation: shimmer 1.5s infinite;
+  }
+
+  @keyframes shimmer {
+    0% {
+      transform: translateX(-100%);
+    }
+    100% {
+      transform: translateX(100%);
+    }
+  }
+
+  .dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+  }
+
+  /* 数字动画效果 */
+  .stat-number {
+    animation: countUp 1s ease-out;
+  }
+
+  @keyframes countUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* 图表容器进入动画 */
+  .chart-container {
+    animation: slideInUp 0.6s ease-out;
+  }
+
+  @keyframes slideInUp {
+    from {
+      opacity: 0;
+      transform: translateY(30px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* 统计卡片错开动画 */
+  .stat-card:nth-child(1) {
+    animation-delay: 0.1s;
+  }
+  .stat-card:nth-child(2) {
+    animation-delay: 0.2s;
+  }
+  .stat-card:nth-child(3) {
+    animation-delay: 0.3s;
+  }
+  .stat-card:nth-child(4) {
+    animation-delay: 0.4s;
+  }
+
+  /* 图表错开动画 */
+  .chart-container:nth-child(1) {
+    animation-delay: 0.5s;
+  }
+  .chart-container:nth-child(2) {
+    animation-delay: 0.6s;
+  }
+  .chart-container:nth-child(3) {
+    animation-delay: 0.7s;
+  }
+  .chart-container:nth-child(4) {
+    animation-delay: 0.8s;
+  }
+
+  @media (max-width: 768px) {
+    .dashboard-header {
+      padding: 2rem 0;
+    }
+
+    .dashboard-header h1 {
+      font-size: 2rem;
+    }
+
+    .chart-box {
+      height: 280px;
+    }
+
+    .loading-spinner {
+      height: 280px;
+    }
+
+    .stat-number {
+      font-size: 2.2rem;
+    }
+
+    .stat-card {
+      padding: 1.5rem;
+    }
+
+    .chart-container {
+      padding: 1.5rem;
+    }
+  }
+
+  @media (max-width: 576px) {
+    .dashboard-header h1 {
+      font-size: 1.8rem;
+    }
+
+    .dashboard-header p {
+      font-size: 1rem;
+    }
+
+    .stat-number {
+      font-size: 2rem;
+    }
+
+    .stat-label {
+      font-size: 0.85rem;
+    }
+
+    .chart-box {
+      height: 250px;
+    }
+
+    .loading-spinner {
+      height: 250px;
+    }
+
+    .chart-container {
+      padding: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .stat-card {
+      padding: 1.2rem;
+      margin-bottom: 1rem;
+    }
+  }
+</style>
+{% endblock %} {% block content %}
+<div class="dashboard-header">
+  <div class="container">
+    <h1 class="text-center mb-0">城市景点数据可视化大屏</h1>
+    <p class="text-center mb-0">基于30,345条景点数据的多维度分析</p>
+  </div>
+</div>
+
+<div class="container">
+  <!-- 统计卡片 -->
+  <div class="row mb-4">
+    <div class="col-md-3 col-sm-6">
+      <div class="stat-card text-center">
+        <div class="stat-number" id="totalAttractions">-</div>
+        <div class="stat-label">景点总数</div>
+      </div>
+    </div>
+    <div class="col-md-3 col-sm-6">
+      <div class="stat-card text-center">
+        <div class="stat-number" id="avgRating">-</div>
+        <div class="stat-label">平均评分</div>
+      </div>
+    </div>
+    <div class="col-md-3 col-sm-6">
+      <div class="stat-card text-center">
+        <div class="stat-number" id="provinceCount">-</div>
+        <div class="stat-label">覆盖省份</div>
+      </div>
+    </div>
+    <div class="col-md-3 col-sm-6">
+      <div class="stat-card text-center">
+        <div class="stat-number" id="freeAttractions">-</div>
+        <div class="stat-label">免费景点</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 第二行统计卡片 -->
+  <div class="row mb-4">
+    <div class="col-md-3 col-sm-6">
+      <div class="stat-card text-center">
+        <div class="stat-number" id="highRatedAttractions">-</div>
+        <div class="stat-label">高评分景点(≥4.0)</div>
+      </div>
+    </div>
+    <div class="col-md-3 col-sm-6">
+      <div class="stat-card text-center">
+        <div class="stat-number" id="cityCount">-</div>
+        <div class="stat-label">覆盖城市</div>
+      </div>
+    </div>
+    <div class="col-md-3 col-sm-6">
+      <div class="stat-card text-center">
+        <div class="stat-number" id="avgDuration">-</div>
+        <div class="stat-label">平均游玩时长</div>
+      </div>
+    </div>
+    <div class="col-md-3 col-sm-6">
+      <div class="stat-card text-center">
+        <div class="stat-number" id="seasonAll">-</div>
+        <div class="stat-label">四季皆宜景点</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 图表区域 -->
+  <div class="row">
+    <!-- 评分分布 -->
+    <div class="col-lg-6">
+      <div class="chart-container">
+        <div class="chart-title">景点评分分布</div>
+        <div id="ratingChart" class="chart-box">
+          <div class="loading-spinner">
+            <div class="spinner-border text-primary" role="status">
+              <span class="visually-hidden">加载中...</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 季节推荐 -->
+    <div class="col-lg-6">
+      <div class="chart-container">
+        <div class="chart-title">最佳游览季节分布</div>
+        <div id="seasonChart" class="chart-box">
+          <div class="loading-spinner">
+            <div class="spinner-border text-primary" role="status">
+              <span class="visually-hidden">加载中...</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <!-- 省份分布 -->
+    <div class="col-lg-8">
+      <div class="chart-container">
+        <div class="chart-title">景点省份分布TOP10</div>
+        <div id="provinceChart" class="chart-box">
+          <div class="loading-spinner">
+            <div class="spinner-border text-primary" role="status">
+              <span class="visually-hidden">加载中...</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 评分与时长相关性 -->
+    <div class="col-lg-4">
+      <div class="chart-container">
+        <div class="chart-title">评分与建议时长相关性</div>
+        <div id="correlationChart" class="chart-box">
+          <div class="loading-spinner">
+            <div class="spinner-border text-primary" role="status">
+              <span class="visually-hidden">加载中...</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 新增图表行 -->
+  <div class="row">
+    <!-- 门票价格分布 -->
+    <div class="col-lg-6">
+      <div class="chart-container">
+        <div class="chart-title">门票价格分布</div>
+        <div id="priceChart" class="chart-box">
+          <div class="loading-spinner">
+            <div class="spinner-border text-primary" role="status">
+              <span class="visually-hidden">加载中...</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 游玩时长分布 -->
+    <div class="col-lg-6">
+      <div class="chart-container">
+        <div class="chart-title">建议游玩时长分布</div>
+        <div id="durationChart" class="chart-box">
+          <div class="loading-spinner">
+            <div class="spinner-border text-primary" role="status">
+              <span class="visually-hidden">加载中...</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 热门景点排行 -->
+  <div class="row">
+    <div class="col-12">
+      <div class="chart-container">
+        <div class="chart-title">热门景点TOP20（按评分）</div>
+        <div id="topAttractionsChart" class="chart-box" style="height: 600px">
+          <div class="loading-spinner">
+            <div class="spinner-border text-primary" role="status">
+              <span class="visually-hidden">加载中...</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %} {% block extra_js %}
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    // 加载统计数据
+    loadStatistics();
+
+    // 加载所有图表
+    loadRatingChart();
+    loadSeasonChart();
+    loadProvinceChart();
+    loadCorrelationChart();
+    loadPriceChart();
+    loadDurationChart();
+    loadTopAttractionsChart();
+  });
+
+  // 加载统计数据
+  function loadStatistics() {
+    apiRequest("/dashboard/api/statistics")
+      .then((data) => {
+        document.getElementById("totalAttractions").textContent = formatNumber(
+          data.total_attractions
+        );
+        document.getElementById("avgRating").textContent = data.avg_rating;
+        document.getElementById("provinceCount").textContent =
+          data.province_count || 0;
+        document.getElementById("freeAttractions").textContent = formatNumber(
+          data.free_attractions
+        );
+
+        // 新增统计
+        document.getElementById("highRatedAttractions").textContent =
+          formatNumber(data.high_rated_attractions || 0);
+        document.getElementById("cityCount").textContent = formatNumber(
+          data.city_count || 0
+        );
+        document.getElementById("avgDuration").textContent =
+          data.avg_duration || "暂无";
+        document.getElementById("seasonAll").textContent = formatNumber(
+          data.season_all || 0
+        );
+      })
+      .catch((error) => {
+        console.error("加载统计数据失败:", error);
+      });
+  }
+
+  // 加载评分分布图
+  function loadRatingChart() {
+    apiRequest("/dashboard/api/rating-distribution")
+      .then((data) => {
+        const option = {
+          title: {
+            text: "",
+            left: "center",
+          },
+          tooltip: {
+            trigger: "axis",
+            axisPointer: {
+              type: "shadow",
+            },
+          },
+          grid: {
+            left: "3%",
+            right: "4%",
+            top: "10%",
+            bottom: "20%",
+            containLabel: true,
+          },
+          xAxis: {
+            type: "category",
+            data: data.labels || ["0-2", "2-3", "3-4", "4-4.5", "4.5-5"],
+            axisLabel: {
+              rotate: 45,
+            },
+          },
+          yAxis: {
+            type: "value",
+            name: "景点数量",
+          },
+          series: [
+            {
+              name: "景点数量",
+              type: "bar",
+              data: data.data || [0, 0, 0, 0, 0],
+              itemStyle: {
+                color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                  { offset: 0, color: "#667eea" },
+                  { offset: 1, color: "#764ba2" },
+                ]),
+              },
+            },
+          ],
+        };
+
+        initChart("ratingChart", option);
+      })
+      .catch((error) => {
+        console.error("加载评分分布图失败:", error);
+        document.getElementById("ratingChart").innerHTML =
+          '<div class="text-center text-danger">加载失败</div>';
+      });
+  }
+
+  // 加载季节分布图
+  function loadSeasonChart() {
+    apiRequest("/dashboard/api/season-distribution")
+      .then((data) => {
+        const option = {
+          title: {
+            text: "",
+            left: "center",
+          },
+          tooltip: {
+            trigger: "axis",
+            axisPointer: {
+              type: "shadow",
+            },
+            formatter: "{b}<br/>{a}: {c} 个景点",
+          },
+          grid: {
+            left: "3%",
+            right: "4%",
+            top: "10%",
+            bottom: "20%",
+            containLabel: true,
+          },
+          xAxis: {
+            type: "category",
+            data: data.labels || [],
+            axisLabel: {
+              rotate: 0,
+              fontSize: 11,
+              interval: 0,
+              margin: 15,
+              formatter: function (value) {
+                // 简化季节名称显示
+                const seasonMap = {
+                  春季: "春",
+                  夏季: "夏",
+                  秋季: "秋",
+                  冬季: "冬",
+                  四季皆宜: "四季",
+                  春季适宜: "春",
+                  夏季适宜: "夏",
+                  秋季适宜: "秋",
+                  冬季适宜: "冬",
+                  全年适宜: "全年",
+                };
+                return seasonMap[value] || value;
+              },
+            },
+          },
+          yAxis: {
+            type: "value",
+            name: "景点数量",
+            axisLabel: {
+              fontSize: 11,
+            },
+          },
+          series: [
+            {
+              name: "景点数量",
+              type: "bar",
+              data: data.data || [],
+              itemStyle: {
+                color: function (params) {
+                  const colors = [
+                    "#ff6b6b", // 春季 - 红色
+                    "#4ecdc4", // 夏季 - 青色
+                    "#ffd93d", // 秋季 - 黄色
+                    "#6bcf7f", // 冬季 - 绿色
+                    "#667eea", // 四季皆宜 - 紫色
+                  ];
+                  return colors[params.dataIndex % colors.length];
+                },
+                borderRadius: [8, 8, 0, 0],
+              },
+              label: {
+                show: true,
+                position: "top",
+                fontSize: 10,
+                color: "#666",
+              },
+            },
+          ],
+        };
+
+        initChart("seasonChart", option);
+      })
+      .catch((error) => {
+        console.error("加载季节分布图失败:", error);
+        document.getElementById("seasonChart").innerHTML =
+          '<div class="text-center text-danger">加载失败</div>';
+      });
+  }
+
+  // 加载省份分布图
+  function loadProvinceChart() {
+    apiRequest("/dashboard/api/province-distribution")
+      .then((data) => {
+        const option = {
+          title: {
+            text: "",
+            left: "center",
+          },
+          tooltip: {
+            trigger: "axis",
+            axisPointer: {
+              type: "shadow",
+            },
+          },
+          grid: {
+            left: "3%",
+            right: "4%",
+            top: "10%",
+            bottom: "15%",
+            containLabel: true,
+          },
+          xAxis: {
+            type: "value",
+            name: "景点数量",
+          },
+          yAxis: {
+            type: "category",
+            data: data.labels || [],
+            axisLabel: {
+              interval: 0,
+            },
+          },
+          series: [
+            {
+              name: "景点数量",
+              type: "bar",
+              data: data.data || [],
+              itemStyle: {
+                color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
+                  { offset: 0, color: "#667eea" },
+                  { offset: 1, color: "#764ba2" },
+                ]),
+              },
+            },
+          ],
+        };
+
+        initChart("provinceChart", option);
+      })
+      .catch((error) => {
+        console.error("加载省份分布图失败:", error);
+        document.getElementById("provinceChart").innerHTML =
+          '<div class="text-center text-danger">加载失败</div>';
+      });
+  }
+
+  // 加载相关性图
+  function loadCorrelationChart() {
+    apiRequest("/dashboard/api/rating-duration-correlation")
+      .then((data) => {
+        const option = {
+          title: {
+            text: "",
+            left: "center",
+          },
+          tooltip: {
+            trigger: "item",
+            formatter: function (params) {
+              return `评分: ${params.data[2]}<br/>时长: ${params.data[3]}`;
+            },
+          },
+          grid: {
+            left: "10%",
+            right: "4%",
+            top: "10%",
+            bottom: "15%",
+            containLabel: true,
+          },
+          xAxis: {
+            type: "value",
+            name: "建议时长(小时)",
+            min: 0,
+            max: 24,
+          },
+          yAxis: {
+            type: "value",
+            name: "评分",
+            min: 0,
+            max: 5,
+          },
+          series: [
+            {
+              name: "景点",
+              type: "scatter",
+              data:
+                data.map((item) => [
+                  item.duration,
+                  item.rating,
+                  item.rating,
+                  item.duration,
+                ]) || [],
+              symbolSize: function (data) {
+                return Math.sqrt(data[2]) * 3;
+              },
+              itemStyle: {
+                color: "#667eea",
+              },
+            },
+          ],
+        };
+
+        initChart("correlationChart", option);
+      })
+      .catch((error) => {
+        console.error("加载相关性图失败:", error);
+        document.getElementById("correlationChart").innerHTML =
+          '<div class="text-center text-danger">加载失败</div>';
+      });
+  }
+
+  // 加载门票价格分布图
+  function loadPriceChart() {
+    apiRequest("/dashboard/api/price-distribution")
+      .then((data) => {
+        const option = {
+          title: {
+            text: "",
+            left: "center",
+          },
+          tooltip: {
+            trigger: "item",
+            formatter: "{a} <br/>{b}: {c} ({d}%)",
+          },
+          legend: {
+            orient: "vertical",
+            left: "left",
+          },
+          series: [
+            {
+              name: "门票价格",
+              type: "pie",
+              radius: "50%",
+              data: data.data || [],
+              emphasis: {
+                itemStyle: {
+                  shadowBlur: 10,
+                  shadowOffsetX: 0,
+                  shadowColor: "rgba(0, 0, 0, 0.5)",
+                },
+              },
+            },
+          ],
+        };
+
+        initChart("priceChart", option);
+      })
+      .catch((error) => {
+        console.error("加载价格分布图失败:", error);
+        document.getElementById("priceChart").innerHTML =
+          '<div class="text-center text-danger">加载失败</div>';
+      });
+  }
+
+  // 加载游玩时长分布图
+  function loadDurationChart() {
+    apiRequest("/dashboard/api/duration-distribution")
+      .then((data) => {
+        const option = {
+          title: {
+            text: "",
+            left: "center",
+          },
+          tooltip: {
+            trigger: "axis",
+            axisPointer: {
+              type: "shadow",
+            },
+          },
+          grid: {
+            left: "3%",
+            right: "4%",
+            top: "10%",
+            bottom: "20%",
+            containLabel: true,
+          },
+          xAxis: {
+            type: "category",
+            data: data.labels || [],
+            axisLabel: {
+              rotate: 45,
+            },
+          },
+          yAxis: {
+            type: "value",
+            name: "景点数量",
+          },
+          series: [
+            {
+              name: "景点数量",
+              type: "bar",
+              data: data.data || [],
+              itemStyle: {
+                color: "#667eea",
+              },
+            },
+          ],
+        };
+
+        initChart("durationChart", option);
+      })
+      .catch((error) => {
+        console.error("加载时长分布图失败:", error);
+        document.getElementById("durationChart").innerHTML =
+          '<div class="text-center text-danger">加载失败</div>';
+      });
+  }
+
+  // 加载热门景点排行图
+  function loadTopAttractionsChart() {
+    apiRequest("/dashboard/api/top-attractions")
+      .then((data) => {
+        const option = {
+          title: {
+            text: "",
+            left: "center",
+          },
+          tooltip: {
+            trigger: "axis",
+            axisPointer: {
+              type: "shadow",
+            },
+          },
+          grid: {
+            left: "3%",
+            right: "4%",
+            top: "10%",
+            bottom: "15%",
+            containLabel: true,
+          },
+          xAxis: {
+            type: "value",
+          },
+          yAxis: {
+            type: "category",
+            data: data.labels || [],
+            axisLabel: {
+              fontSize: 10,
+            },
+          },
+          series: [
+            {
+              name: "评分",
+              type: "bar",
+              data: data.data || [],
+              itemStyle: {
+                color: function (params) {
+                  const value = params.value;
+                  if (value >= 4.8) return "#ff4757";
+                  if (value >= 4.5) return "#ff6348";
+                  if (value >= 4.2) return "#ffa502";
+                  if (value >= 4.0) return "#ffdd59";
+                  return "#747d8c";
+                },
+              },
+              label: {
+                show: true,
+                position: "right",
+                formatter: "{c}",
+              },
+            },
+          ],
+        };
+
+        initChart("topAttractionsChart", option);
+      })
+      .catch((error) => {
+        console.error("加载热门景点图失败:", error);
+        document.getElementById("topAttractionsChart").innerHTML =
+          '<div class="text-center text-danger">加载失败</div>';
+      });
+  }
+</script>
+{% endblock %}

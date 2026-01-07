@@ -1,0 +1,72 @@
+/* 自定义样式 */
+.hero-section {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 10px;
+    margin-bottom: 3rem;
+}
+
+.card {
+    border: none;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s ease-in-out;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+}
+
+.navbar-brand {
+    font-weight: bold;
+}
+
+footer {
+    margin-top: auto;
+}
+
+/* 图表容器样式 */
+.chart-container {
+    height: 400px;
+    margin: 20px 0;
+}
+
+/* 地图容器样式 */
+.map-container {
+    height: 600px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+}
+
+/* 景点卡片样式 */
+.attraction-card {
+    transition: transform 0.2s ease-in-out;
+}
+
+.attraction-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+/* 评分星星样式 */
+.rating-stars {
+    color: #ffc107;
+}
+
+/* 筛选表单样式 */
+.filter-section {
+    background-color: #f8f9fa;
+    padding: 20px;
+    border-radius: 5px;
+    margin-bottom: 20px;
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+    .chart-container {
+        height: 300px;
+    }
+    
+    .map-container {
+        height: 400px;
+    }
+}

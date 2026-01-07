@@ -1,0 +1,103 @@
+{% extends "base.html" %} {% block title %}首页 - 城市景点可视化系统{% endblock
+%} {% block content %}
+<div class="hero-section text-center py-5 mb-5">
+  <h1 class="display-4 text-primary mb-4">城市景点数据可视化平台</h1>
+  <p class="lead mb-4">基于数据驱动的文旅服务升级，深度洞察城市景点特征</p>
+  <div class="row justify-content-center">
+    <div class="col-md-8">
+      <div class="card">
+        <div class="card-body">
+          <h5 class="card-title">系统简介</h5>
+          <p class="card-text">
+            本系统整合了全国35,200+条景点数据，通过多维度统计分析与可视化技术，
+            为城市文旅管理部门、景点运营方及游客提供精准的数据支撑。
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row">
+  <div class="col-md-4 mb-4">
+    <div class="card h-100">
+      <div class="card-body text-center">
+        <i
+          class="bi bi-bar-chart-fill text-primary"
+          style="font-size: 3rem"
+        ></i>
+        <h5 class="card-title mt-3">多维度分析</h5>
+        <p class="card-text">从评分、时间、空间、成本等多个维度分析景点特征</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-4 mb-4">
+    <div class="card h-100">
+      <div class="card-body text-center">
+        <i class="bi bi-map-fill text-success" style="font-size: 3rem"></i>
+        <h5 class="card-title mt-3">地理可视化</h5>
+        <p class="card-text">基于地图的景点分布展示，直观呈现空间格局</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-4 mb-4">
+    <div class="card h-100">
+      <div class="card-body text-center">
+        <i class="bi bi-search text-info" style="font-size: 3rem"></i>
+        <h5 class="card-title mt-3">智能筛选</h5>
+        <p class="card-text">支持多条件筛选，快速找到符合需求的景点</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row mt-5">
+  <div class="col-md-6">
+    <h3>快速导航</h3>
+    <div class="list-group">
+      <a
+        href="{{ url_for('city.city_index') }}"
+        class="list-group-item list-group-item-action"
+      >
+        <i class="bi bi-building"></i> 城市景点浏览
+      </a>
+      <a
+        href="{{ url_for('dashboard.dashboard') }}"
+        class="list-group-item list-group-item-action"
+      >
+        <i class="bi bi-graph-up"></i> 可视化大屏
+      </a>
+      <a
+        href="{{ url_for('city.attractions') }}"
+        class="list-group-item list-group-item-action"
+      >
+        <i class="bi bi-list-ul"></i> 景点列表
+      </a>
+    </div>
+  </div>
+
+  <div class="col-md-6">
+    <h3>数据统计</h3>
+    <div class="row">
+      <div class="col-6">
+        <div class="card text-center">
+          <div class="card-body">
+            <h4 class="text-primary">35,200+</h4>
+            <p class="card-text">景点数据</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-6">
+        <div class="card text-center">
+          <div class="card-body">
+            <h4 class="text-success">34</h4>
+            <p class="card-text">省级行政区</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

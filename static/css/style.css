@@ -95,13 +95,6 @@ body::before {
 .navbar {
   position: relative;
   z-index: 1100;
-  overflow: visible;
-}
-
-.navbar .container,
-.navbar .navbar-collapse,
-.navbar .navbar-nav {
-  overflow: visible;
 }
 
 .dropdown-menu {

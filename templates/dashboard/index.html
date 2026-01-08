@@ -469,6 +469,38 @@ endblock %} {% block extra_css %}
     </div>
   </div>
 
+  <!-- 新增图表：各省市4A-5A景区数量（双柱状图） -->
+  <div class="row g-4">
+    <div class="col-12">
+      <div class="chart-container">
+        <div class="chart-title">各省市4A-5A景区数量TOP15</div>
+        <div id="provinceGradeChart" class="chart-box">
+          <div class="loading-spinner">
+            <div class="spinner-border text-primary" role="status">
+              <span class="visually-hidden">加载中...</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 新增图表：全国热点城市 -->
+  <div class="row g-4">
+    <div class="col-12">
+      <div class="chart-container">
+        <div class="chart-title">全国热点城市TOP15</div>
+        <div id="cityHotChart" class="chart-box">
+          <div class="loading-spinner">
+            <div class="spinner-border text-primary" role="status">
+              <span class="visually-hidden">加载中...</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div class="row g-4">
     <!-- 省份分布 -->
     <div class="col-12">
@@ -547,6 +579,8 @@ endblock %} {% block extra_css %}
         loadTopAttractionsChart();
         loadSeasonChart();
         loadCityChart();
+        loadProvinceGradeChart();
+        loadCityHotChart();
       });
 
       // 加载统计数据
@@ -762,6 +796,131 @@ endblock %} {% block extra_css %}
           .catch((error) => {
             console.error("加载城市分布失败:", error);
             document.getElementById("cityChart").innerHTML =
+              '<div class="text-center text-danger">加载失败</div>';
+          });
+      }
+
+      // 各省市4A-5A景区数量（双柱状图）
+      function loadProvinceGradeChart() {
+        apiRequest("/dashboard/api/province-grade-distribution")
+          .then((data) => {
+            const option = {
+              tooltip: {
+                trigger: "axis",
+                axisPointer: {
+                  type: "shadow",
+                },
+              },
+              legend: {
+                data: ["4A景区", "5A景区"],
+                top: 0,
+              },
+              grid: {
+                left: "3%",
+                right: "4%",
+                top: "10%",
+                bottom: "15%",
+                containLabel: true,
+              },
+              xAxis: {
+                type: "value",
+                name: "景区数量",
+              },
+              yAxis: {
+                type: "category",
+                data: data.provinces || [],
+                axisLabel: {
+                  interval: 0,
+                  fontSize: 10,
+                },
+              },
+              series: [
+                {
+                  name: "4A景区",
+                  type: "bar",
+                  data: data.data_4a || [],
+                  itemStyle: {
+                    color: "#17a2b8",
+                  },
+                },
+                {
+                  name: "5A景区",
+                  type: "bar",
+                  data: data.data_5a || [],
+                  itemStyle: {
+                    color: "#dc3545",
+                  },
+                },
+              ],
+            };
+
+            initChart("provinceGradeChart", option);
+          })
+          .catch((error) => {
+            console.error("加载4A/5A景区分布失败:", error);
+            document.getElementById("provinceGradeChart").innerHTML =
+              '<div class="text-center text-danger">加载失败</div>';
+          });
+      }
+
+      // 全国热点城市
+      function loadCityHotChart() {
+        apiRequest("/dashboard/api/city-hot-distribution")
+          .then((data) => {
+            const option = {
+              tooltip: {
+                trigger: "axis",
+                axisPointer: {
+                  type: "shadow",
+                },
+                formatter: (params) => {
+                  const idx = params[0].dataIndex;
+                  const city = data.labels[idx];
+                  const hot = data.data[idx];
+                  const cnt = data.counts[idx];
+                  const rating = data.avg_ratings[idx];
+                  return `${city}<br/>热度: ${hot}<br/>景点数: ${cnt}<br/>平均评分: ${rating}`;
+                },
+              },
+              grid: {
+                left: "3%",
+                right: "4%",
+                top: "10%",
+                bottom: "15%",
+                containLabel: true,
+              },
+              xAxis: {
+                type: "value",
+                name: "热度值",
+              },
+              yAxis: {
+                type: "category",
+                data: data.labels || [],
+                axisLabel: {
+                  interval: 0,
+                  fontSize: 10,
+                },
+              },
+              series: [
+                {
+                  name: "热度",
+                  type: "bar",
+                  data: data.data || [],
+                  itemStyle: {
+                    color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
+                      { offset: 0, color: "#ffc107" },
+                      { offset: 1, color: "#ff6b6b" },
+                    ]),
+                  },
+                },
+              ],
+            };
+
+            initChart("cityHotChart", option);
+          })
+          .catch((error) => {
+            console.error("加载全国热点城市失败:", error);
+            document.getElementById("cityHotChart").innerHTML =
               '<div class="text-center text-danger">加载失败</div>';
           });
       }

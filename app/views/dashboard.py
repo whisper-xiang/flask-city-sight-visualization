@@ -69,6 +69,18 @@ def top_attractions():
     data = analyzer.get_top_attractions()
     return jsonify(data)
 
+@dashboard_bp.route('/api/province-grade-distribution')
+def province_grade_distribution():
+    analyzer = DataAnalyzer()
+    data = analyzer.get_province_grade_distribution()
+    return jsonify(data)
+
+@dashboard_bp.route('/api/city-hot-distribution')
+def city_hot_distribution():
+    analyzer = DataAnalyzer()
+    data = analyzer.get_city_hot_distribution()
+    return jsonify(data)
+
 @dashboard_bp.route('/data')
 def data_table():
     """数据表格页面"""
@@ -122,11 +134,15 @@ def get_table_data():
     # 获取所有城市和省份用于过滤
     cities = db.session.query(Attraction.city).filter(
         Attraction.city.isnot(None), 
-        Attraction.city != ''
+        Attraction.city != '',
+        Attraction.city != '未知',
+        Attraction.city != '未知'
     ).distinct().all()
     provinces = db.session.query(Attraction.province).filter(
         Attraction.province.isnot(None),
-        Attraction.province != ''
+        Attraction.province != '',
+        Attraction.province != '未知',
+        Attraction.province != '未知'
     ).distinct().all()
     
     return jsonify({

@@ -10,6 +10,16 @@ class DataAnalyzer:
     def __init__(self):
         pass
     
+    @staticmethod
+    def _clean_unknown(value):
+        """过滤掉“未知”“未知”等无效值"""
+        if value is None:
+            return None
+        s = str(value).strip()
+        if s == "" or s == "未知" or s == "未知":
+            return None
+        return s
+    
     def get_all_statistics(self):
         """获取所有基础统计数据"""
         total_attractions = Attraction.query.count()
@@ -19,8 +29,8 @@ class DataAnalyzer:
         
         # 新增统计
         high_rated_count = Attraction.query.filter(Attraction.rating >= 4.0).count()
-        province_count = db.session.query(db.func.count(db.distinct(Attraction.province))).scalar() or 0
-        city_count = db.session.query(db.func.count(db.distinct(Attraction.city))).scalar() or 0
+        province_count = db.session.query(db.func.count(db.distinct(Attraction.province))).filter(Attraction.province.isnot(None), Attraction.province != '', Attraction.province != '未知', Attraction.province != '未知').scalar() or 0
+        city_count = db.session.query(db.func.count(db.distinct(Attraction.city))).filter(Attraction.city.isnot(None), Attraction.city != '', Attraction.city != '未知', Attraction.city != '未知').scalar() or 0
         season_all_count = Attraction.query.filter(Attraction.recommended_season == '四季皆宜').count()
         
         # 计算平均游玩时长
@@ -58,7 +68,7 @@ class DataAnalyzer:
     def get_season_distribution(self):
         """获取季节推荐分布"""
         seasons = db.session.query(Attraction.recommended_season).all()
-        season_list = [s[0] for s in seasons if s[0]]
+        season_list = [self._clean_unknown(s[0]) for s in seasons if self._clean_unknown(s[0])]
         
         season_counts = Counter(season_list)
         
@@ -85,7 +95,7 @@ class DataAnalyzer:
     def get_province_distribution(self):
         """获取省份分布数据"""
         provinces = db.session.query(Attraction.province).all()
-        province_list = [p[0] for p in provinces if p[0]]
+        province_list = [self._clean_unknown(p[0]) for p in provinces if self._clean_unknown(p[0])]
         
         province_counts = Counter(province_list)
         
@@ -100,7 +110,7 @@ class DataAnalyzer:
     def get_city_distribution(self):
         """获取城市分布数据"""
         cities = db.session.query(Attraction.city).all()
-        city_list = [c[0] for c in cities if c[0]]
+        city_list = [self._clean_unknown(c[0]) for c in cities if self._clean_unknown(c[0])]
 
         city_counts = Counter(city_list)
 
@@ -180,7 +190,7 @@ class DataAnalyzer:
     def get_price_distribution(self):
         """获取门票价格分布"""
         prices = db.session.query(Attraction.ticket_price).all()
-        price_list = [p[0] for p in prices if p[0]]
+        price_list = [self._clean_unknown(p[0]) for p in prices if self._clean_unknown(p[0])]
         
         price_counts = Counter(price_list)
         
@@ -293,4 +303,76 @@ class DataAnalyzer:
         return {
             'labels': [f"{attr[0][:15]}..." if len(attr[0]) > 15 else attr[0] for attr in attractions],
             'data': [float(attr[1]) if attr[1] else 0 for attr in attractions]
+        }
+
+    def get_province_grade_distribution(self):
+        """获取各省市4A-5A景区数量（双柱状图）"""
+        # 简单匹配：如果景点名称或描述中包含“4A”“5A”或“AAAA”“AAAAA”，则归类
+        attractions = db.session.query(
+            Attraction.province,
+            Attraction.name,
+            Attraction.description
+        ).all()
+        
+        province_4a = {}
+        province_5a = {}
+        
+        for province, name, desc in attractions:
+            if not province:
+                continue
+            text = f"{name or ''} {desc or ''}".lower()
+            if '5a' in text or 'aaaaa' in text:
+                province_5a[province] = province_5a.get(province, 0) + 1
+            elif '4a' in text or 'aaaa' in text:
+                province_4a[province] = province_4a.get(province, 0) + 1
+        
+        # 取前15个省份
+        all_provinces = set(province_4a.keys()) | set(province_5a.keys())
+        sorted_provinces = sorted(all_provinces, 
+                                 key=lambda p: province_4a.get(p, 0) + province_5a.get(p, 0), 
+                                 reverse=True)[:15]
+        
+        return {
+            'provinces': sorted_provinces,
+            'data_4a': [province_4a.get(p, 0) for p in sorted_provinces],
+            'data_5a': [province_5a.get(p, 0) for p in sorted_provinces]
+        }
+
+    def get_city_hot_distribution(self):
+        """获取全国热点城市（按景点数量或评分排序）"""
+        # 按景点数量 + 平均评分加权排序
+        city_stats = {}
+        attractions = db.session.query(
+            Attraction.city,
+            Attraction.province,
+            Attraction.rating
+        ).all()
+        
+        city_counts = {}
+        city_ratings = {}
+        for city, province, rating in attractions:
+            city_clean = self._clean_unknown(city)
+            if not city_clean:
+                continue
+            city_counts[city_clean] = city_counts.get(city_clean, 0) + 1
+            if rating:
+                city_ratings.setdefault(city_clean, []).append(rating)
+        
+        # 计算平均评分
+        city_avg_rating = {c: sum(rs)/len(rs) for c, rs in city_ratings.items()}
+        
+        # 综合热度：景点数量 * 0.6 + 平均评分 * 0.4 * 10（归一化）
+        city_hot = {}
+        for city, cnt in city_counts.items():
+            avg = city_avg_rating.get(city, 0)
+            city_hot[city] = cnt * 0.6 + avg * 0.4 * 10
+        
+        # 取前15个热点城市
+        hot_cities = sorted(city_hot.items(), key=lambda x: x[1], reverse=True)[:15]
+        
+        return {
+            'labels': [c[0] for c in hot_cities],
+            'data': [round(c[1], 2) for c in hot_cities],
+            'counts': [city_counts.get(c[0], 0) for c in hot_cities],
+            'avg_ratings': [round(city_avg_rating.get(c[0], 0), 2) for c in hot_cities]
         }

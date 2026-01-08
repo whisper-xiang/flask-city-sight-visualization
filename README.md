@@ -1,104 +1,150 @@
 # 城市景点可视化系统
 
-基于Flask的城市景点数据可视化平台，整合多维度数据分析与可视化技术。
+基于 Flask 的城市景点信息可视化平台，提供景点数据展示、搜索、评价等功能。
 
-## 功能特性
+## 首次启动步骤
 
-- **多维度数据分析**: 评分、时间、空间、成本等多个维度分析景点特征
-- **可视化展示**: 基于ECharts的丰富图表展示
-- **地理分布**: 集成地图API展示景点空间分布
-- **智能筛选**: 支持多条件筛选景点信息
-- **用户系统**: 登录注册功能
+### 方法一：一键启动（推荐）
 
-## 技术栈
+**macOS/Linux 用户：**
+```bash
+chmod +x start.sh
+./start.sh
+```
 
-- **后端**: Flask + SQLAlchemy + MySQL
-- **前端**: Bootstrap + ECharts + JavaScript
-- **数据处理**: Pandas + NumPy
-- **地图**: 百度地图API
+**Windows 用户：**
+```cmd
+start.bat
+```
+
+### 方法二：手动启动
+
+#### 1. 环境准备
+
+**检查 Python 版本：**
+- 需要 Python 3.12（推荐）或 3.11
+- 检查命令：`python3.12 --version` 或 `python3.11 --version`
+
+**安装 Python（如未安装）：**
+
+**Windows:**
+- 访问 https://www.python.org/downloads/ 下载 Python 3.12
+- 安装时勾选 "Add Python to PATH"
+
+**macOS:**
+- `brew install python@3.12`
+
+**Linux:**
+- Ubuntu/Debian: `sudo apt install python3.12 python3.12-venv`
+- CentOS/RHEL: `sudo dnf install python3.12`
+
+#### 2. 创建虚拟环境
+
+```bash
+# 使用检测到的 Python 版本创建虚拟环境
+python3.12 -m venv venv  # 或 python3.11 -m venv venv
+
+# 激活虚拟环境
+# macOS/Linux:
+source venv/bin/activate
+# Windows:
+venv\Scripts\activate
+```
+
+#### 3. 安装依赖
+
+```bash
+# 升级构建工具
+python -m pip install --upgrade pip setuptools wheel
+
+# 安装项目依赖
+pip install -r requirements.txt
+```
+
+#### 4. 数据库配置
+
+**启动 MySQL 服务：**
+
+**Windows:**
+- 方法一：使用服务管理器启动 MySQL 服务
+- 方法二：命令行启动 `net start mysql`
+- 方法三：使用 XAMPP/WAMP 等集成环境启动 MySQL
+
+**macOS (Homebrew):**
+```bash
+brew services start mysql
+```
+
+**创建数据库：**
+**Windows 命令行（如果 MySQL 在 PATH 中）：**
+```cmd
+mysql -u root -p -e "CREATE DATABASE IF NOT EXISTS city_attractions CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+```
+
+
+#### 6. 初始化数据库表
+
+```bash
+python -c "
+from app import create_app, db
+from app.models import Attraction, Review, Favorite, User
+app = create_app()
+with app.app_context():
+    db.drop_all()
+    db.create_all()
+    print('数据库表初始化完成')
+"
+```
+
+#### 7. 导入数据
+
+```bash
+# 导入数据（使用找到的文件）
+python import_data.py data/cleaned_attractions.csv
+```
+
+#### 8. 启动应用
+
+```bash
+python run.py
+```
+
+访问 http://localhost:5000 查看应用。
 
 ## 项目结构
 
 ```
 flask-city-sight-visualization/
-├── app/                    # 应用核心代码
-│   ├── __init__.py        # 应用初始化
-│   ├── models.py          # 数据模型
-│   ├── forms.py           # 表单定义
+├── app/                    # 应用主目录
+│   ├── models/            # 数据模型
+│   ├── utils/             # 工具函数
 │   ├── views/             # 视图控制器
-│   │   ├── auth.py        # 用户认证
-│   │   ├── main.py        # 主要页面
-│   │   ├── city.py        # 城市景点
-│   │   └── dashboard.py   # 可视化大屏
-│   └── utils/             # 工具函数
-│       ├── data_analyzer.py    # 数据分析
-│       └── data_processor.py   # 数据处理
+│   ├── forms.py           # 表单定义
+│   └── models.py          # 数据模型
 ├── config/                # 配置文件
-├── static/                # 静态资源
-├── templates/             # HTML模板
 ├── data/                  # 数据文件
-├── requirements.txt       # 依赖包
-└── run.py                # 启动文件
+├── static/                # 静态资源
+├── templates/             # 模板文件
+├── start.sh              # macOS/Linux 启动脚本
+├── start.bat             # Windows 启动脚本
+├── requirements.txt      # Python 依赖
+└── run.py               # 应用入口
 ```
 
-## 安装与运行
+## 功能特性
 
-1. **克隆项目**
-```bash
-git clone <repository-url>
-cd flask-city-sight-visualization
-```
+- 🏙️ 城市景点信息展示
+- 🔍 景点搜索与筛选
+- ⭐ 用户评价与收藏
+- 📊 数据可视化分析
+- 📱 响应式设计
 
-2. **创建虚拟环境**
-```bash
-python -m venv venv
-source venv/bin/activate  # Linux/Mac
-# 或
-venv\Scripts\activate     # Windows
-```
+## 开发环境
 
-3. **安装依赖**
-```bash
-pip install -r requirements.txt
-```
-
-4. **配置环境变量**
-```bash
-cp .env.example .env
-# 编辑 .env 文件，配置数据库连接等信息
-```
-
-5. **初始化数据库**
-```bash
-python run.py
-```
-
-6. **访问应用**
-打开浏览器访问: http://localhost:5000
-
-## 数据导入
-
-1. 将Kaggle数据集CSV文件放入 `data/` 目录
-2. 运行数据导入脚本:
-```python
-from app.utils.data_processor import DataProcessor
-
-processor = DataProcessor('data/china_city_attraction_details.csv')
-df = processor.load_and_clean_data()
-processor.save_to_database(df)
-```
-
-## 默认账户
-
-- 用户名: admin
-- 密码: admin123
-
-## 开发说明
-
-- 数据库表会在首次运行时自动创建
-- 支持热重载开发模式
-- 前端使用Bootstrap 5 + ECharts 5
-- 后端API遵循RESTful设计
+- Python 3.12/3.11
+- Flask
+- MySQL
+- Bootstrap/Tailwind CSS
 
 ## 许可证
 

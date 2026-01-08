@@ -1,0 +1,498 @@
+{% extends "base.html" %} {% block title %}数据表格 - 城市景点可视化{% endblock
+%} {% block content %}
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1><i class="fas fa-table me-2"></i>景点数据表格</h1>
+        <div>
+          <button class="btn btn-outline-primary btn-sm" onclick="exportData()">
+            <i class="fas fa-download me-1"></i>导出数据
+          </button>
+        </div>
+      </div>
+
+      <!-- 数据表格 -->
+      <div class="card">
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-striped table-hover" id="dataTable">
+              <thead class="table-dark">
+                <tr>
+                  <th>ID</th>
+                  <th>景点名称</th>
+                  <th>省份</th>
+                  <th>城市</th>
+                  <th>区域</th>
+                  <th>评分</th>
+                  <th>建议游玩时间</th>
+                  <th>门票价格</th>
+                  <th>开放时间</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody id="tableBody">
+                <tr>
+                  <td colspan="10" class="text-center">
+                    <div class="spinner-border" role="status">
+                      <span class="visually-hidden">加载中...</span>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- 分页 -->
+          <nav aria-label="数据表格分页">
+            <ul class="pagination justify-content-center" id="pagination"></ul>
+          </nav>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 景点详情模态框 -->
+<div
+  class="modal fade"
+  id="attractionModal"
+  tabindex="-1"
+  aria-labelledby="attractionModalLabel"
+  aria-hidden="true"
+>
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="attractionModalLabel">景点详情</h5>
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="modal"
+          aria-label="Close"
+        ></button>
+      </div>
+      <div class="modal-body" id="modalBody">
+        <!-- 详情内容将动态加载 -->
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+          关闭
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %} {% block extra_js %}
+<script>
+  let currentPage = 1;
+  let currentFilters = {
+    search: "",
+    city: "",
+    province: "",
+    per_page: 20,
+  };
+
+  // 页面加载时初始化
+  document.addEventListener("DOMContentLoaded", function () {
+    loadData();
+    loadFilters();
+  });
+
+  // 加载数据
+  function loadData() {
+    showLoading();
+
+    const params = new URLSearchParams({
+      page: currentPage,
+      per_page: currentFilters.per_page,
+      search: currentFilters.search,
+      city: currentFilters.city,
+      province: currentFilters.province,
+    });
+
+    fetch(`/dashboard/api/data?${params}`)
+      .then((response) => response.json())
+      .then((data) => {
+        renderTable(data.attractions);
+        renderPagination(data.pagination);
+        hideLoading();
+      })
+      .catch((error) => {
+        console.error("加载数据失败:", error);
+        hideLoading();
+        showError("加载数据失败，请稍后重试");
+      });
+  }
+
+  // 加载筛选器选项
+  function loadFilters() {
+    fetch("/dashboard/api/data")
+      .then((response) => response.json())
+      .then((data) => {
+        // 填充省份筛选器
+        const provinceSelect = document.getElementById("provinceFilter");
+        data.filters.provinces.forEach((province) => {
+          const option = document.createElement("option");
+          option.value = province;
+          option.textContent = province;
+          provinceSelect.appendChild(option);
+        });
+
+        // 填充城市筛选器
+        const citySelect = document.getElementById("cityFilter");
+        data.filters.cities.forEach((city) => {
+          const option = document.createElement("option");
+          option.value = city;
+          option.textContent = city;
+          citySelect.appendChild(option);
+        });
+      })
+      .catch((error) => {
+        console.error("加载筛选器失败:", error);
+      });
+  }
+
+  // 渲染表格
+  function renderTable(attractions) {
+    const tbody = document.getElementById("tableBody");
+    tbody.innerHTML = "";
+
+    attractions.forEach((attraction) => {
+      const row = document.createElement("tr");
+      row.innerHTML = `
+            <td>${attraction.id}</td>
+            <td>
+                <strong>${attraction.name}</strong>
+                ${
+                  attraction.link
+                    ? `<br><a href="${attraction.link}" target="_blank" class="text-primary small"><i class="fas fa-link"></i> 查看详情</a>`
+                    : ""
+                }
+            </td>
+            <td>${attraction.province || "-"}</td>
+            <td>${attraction.city || "-"}</td>
+            <td>${attraction.district || "-"}</td>
+            <td>
+                <span class="badge bg-warning">${
+                  attraction.rating || "暂无"
+                }</span>
+            </td>
+            <td>${attraction.recommended_duration || "-"}</td>
+            <td>${attraction.ticket_price || "-"}</td>
+            <td>${attraction.opening_hours || "-"}</td>
+            <td>
+                <button class="btn btn-sm btn-outline-primary" onclick="showDetails(${
+                  attraction.id
+                })">
+                    <i class="fas fa-eye"></i>
+                </button>
+            </td>
+        `;
+      tbody.appendChild(row);
+    });
+  }
+
+  // 渲染分页
+  function renderPagination(pagination) {
+    const paginationUl = document.getElementById("pagination");
+    paginationUl.innerHTML = "";
+
+    if (pagination.pages <= 1) {
+      return; // 如果只有一页，不显示分页
+    }
+
+    // 上一页
+    const prevLi = document.createElement("li");
+    prevLi.className = `page-item ${pagination.has_prev ? "" : "disabled"}`;
+    prevLi.innerHTML = `<a class="page-link" href="#" onclick="changePage(${
+      pagination.page - 1
+    })" ${
+      !pagination.has_prev ? 'tabindex="-1" aria-disabled="true"' : ""
+    }>上一页</a>`;
+    paginationUl.appendChild(prevLi);
+
+    // 页码逻辑优化
+    let startPage = Math.max(1, pagination.page - 2);
+    let endPage = Math.min(pagination.pages, pagination.page + 2);
+
+    // 如果当前页靠近开始，显示更多后面的页码
+    if (pagination.page <= 3) {
+      endPage = Math.min(pagination.pages, 5);
+    }
+
+    // 如果当前页靠近结束，显示更多前面的页码
+    if (pagination.page >= pagination.pages - 2) {
+      startPage = Math.max(1, pagination.pages - 4);
+    }
+
+    // 第一页和省略号
+    if (startPage > 1) {
+      const firstLi = document.createElement("li");
+      firstLi.className = `page-item ${1 === pagination.page ? "active" : ""}`;
+      firstLi.innerHTML = `<a class="page-link" href="#" onclick="changePage(1)">1</a>`;
+      paginationUl.appendChild(firstLi);
+
+      if (startPage > 2) {
+        const ellipsisLi = document.createElement("li");
+        ellipsisLi.className = "page-item disabled";
+        ellipsisLi.innerHTML = `<a class="page-link" href="#">...</a>`;
+        paginationUl.appendChild(ellipsisLi);
+      }
+    }
+
+    // 中间页码
+    for (let i = startPage; i <= endPage; i++) {
+      const li = document.createElement("li");
+      li.className = `page-item ${i === pagination.page ? "active" : ""}`;
+      li.innerHTML = `<a class="page-link" href="#" onclick="changePage(${i})">${i}</a>`;
+      paginationUl.appendChild(li);
+    }
+
+    // 省略号和最后一页
+    if (endPage < pagination.pages) {
+      if (endPage < pagination.pages - 1) {
+        const ellipsisLi = document.createElement("li");
+        ellipsisLi.className = "page-item disabled";
+        ellipsisLi.innerHTML = `<a class="page-link" href="#">...</a>`;
+        paginationUl.appendChild(ellipsisLi);
+      }
+
+      const lastLi = document.createElement("li");
+      lastLi.className = `page-item ${
+        pagination.pages === pagination.page ? "active" : ""
+      }`;
+      lastLi.innerHTML = `<a class="page-link" href="#" onclick="changePage(${pagination.pages})">${pagination.pages}</a>`;
+      paginationUl.appendChild(lastLi);
+    }
+
+    // 下一页
+    const nextLi = document.createElement("li");
+    nextLi.className = `page-item ${pagination.has_next ? "" : "disabled"}`;
+    nextLi.innerHTML = `<a class="page-link" href="#" onclick="changePage(${
+      pagination.page + 1
+    })" ${
+      !pagination.has_next ? 'tabindex="-1" aria-disabled="true"' : ""
+    }>下一页</a>`;
+    paginationUl.appendChild(nextLi);
+
+    // 显示分页信息
+    const infoLi = document.createElement("li");
+    infoLi.className = "page-item disabled ms-3";
+    infoLi.innerHTML = `<span class="page-link text-muted">第 ${pagination.page} 页，共 ${pagination.pages} 页 | 总计 ${pagination.total} 条记录</span>`;
+    paginationUl.appendChild(infoLi);
+
+    // 添加快速跳转功能
+    if (pagination.pages > 5) {
+      const jumpLi = document.createElement("li");
+      jumpLi.className = "page-item ms-2";
+      jumpLi.innerHTML = `
+        <div class="d-flex align-items-center">
+          <span class="page-link text-muted me-2">跳转到</span>
+          <input type="number" class="form-control form-control-sm" id="jumpPage" 
+                 min="1" max="${pagination.pages}" value="${pagination.page}" 
+                 style="width: 60px;" onkeypress="handleJumpPage(event, ${pagination.pages})">
+          <button class="btn btn-sm btn-primary ms-1" onclick="jumpToPage(${pagination.pages})">确定</button>
+        </div>
+      `;
+      paginationUl.appendChild(jumpLi);
+    }
+  }
+
+  // 切换页面
+  function changePage(page) {
+    currentPage = page;
+    loadData();
+    return false;
+  }
+
+  // 快速跳转到指定页面
+  function jumpToPage(maxPage) {
+    const jumpInput = document.getElementById("jumpPage");
+    const targetPage = parseInt(jumpInput.value);
+
+    if (targetPage >= 1 && targetPage <= maxPage) {
+      changePage(targetPage);
+    } else {
+      alert(`请输入1到${maxPage}之间的页码`);
+      jumpInput.value = currentPage;
+    }
+  }
+
+  // 处理快速跳转的回车键
+  function handleJumpPage(event, maxPage) {
+    if (event.key === "Enter") {
+      jumpToPage(maxPage);
+    }
+  }
+
+  // 应用筛选
+  function applyFilters() {
+    currentFilters.search = document.getElementById("searchInput").value;
+    currentFilters.city = document.getElementById("cityFilter").value;
+    currentFilters.province = document.getElementById("provinceFilter").value;
+    currentFilters.per_page = parseInt(
+      document.getElementById("perPageSelect").value
+    );
+    currentPage = 1;
+    loadData();
+  }
+
+  // 重置筛选
+  function resetFilters() {
+    document.getElementById("searchInput").value = "";
+    document.getElementById("cityFilter").value = "";
+    document.getElementById("provinceFilter").value = "";
+    document.getElementById("perPageSelect").value = "20";
+
+    currentFilters = {
+      search: "",
+      city: "",
+      province: "",
+      per_page: 20,
+    };
+    currentPage = 1;
+    loadData();
+  }
+
+  // 显示景点详情
+  function showDetails(attractionId) {
+    // 这里可以根据ID获取详细信息，暂时显示基本信息
+    fetch(`/dashboard/api/data`)
+      .then((response) => response.json())
+      .then((data) => {
+        const attraction = data.attractions.find((a) => a.id === attractionId);
+        if (attraction) {
+          const modalBody = document.getElementById("modalBody");
+          modalBody.innerHTML = `
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>基本信息</h6>
+                            <p><strong>名称：</strong>${attraction.name}</p>
+                            <p><strong>地址：</strong>${
+                              attraction.address || "暂无信息"
+                            }</p>
+                            <p><strong>省份：</strong>${
+                              attraction.province || "未知"
+                            }</p>
+                            <p><strong>城市：</strong>${
+                              attraction.city || "未知"
+                            }</p>
+                            <p><strong>区域：</strong>${
+                              attraction.district || "未知"
+                            }</p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>游览信息</h6>
+                            <p><strong>评分：</strong>${
+                              attraction.rating || "暂无评分"
+                            }</p>
+                            <p><strong>建议游玩时间：</strong>${
+                              attraction.recommended_duration || "暂无信息"
+                            }</p>
+                            <p><strong>建议季节：</strong>${
+                              attraction.recommended_season || "暂无信息"
+                            }</p>
+                            <p><strong>门票价格：</strong>${
+                              attraction.ticket_price || "暂无信息"
+                            }</p>
+                            <p><strong>开放时间：</strong>${
+                              attraction.opening_hours || "暂无信息"
+                            }</p>
+                        </div>
+                    </div>
+                    ${
+                      attraction.description
+                        ? `
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <h6>景点介绍</h6>
+                            <p>${attraction.description}</p>
+                        </div>
+                    </div>
+                    `
+                        : ""
+                    }
+                    ${
+                      attraction.tips
+                        ? `
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <h6>游览小贴士</h6>
+                            <p>${attraction.tips}</p>
+                        </div>
+                    </div>
+                    `
+                        : ""
+                    }
+                    ${
+                      attraction.image_url
+                        ? `
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <h6>景点图片</h6>
+                            <img src="${attraction.image_url}" class="img-fluid" alt="${attraction.name}" onerror="this.style.display='none'">
+                        </div>
+                    </div>
+                    `
+                        : ""
+                    }
+                `;
+
+          const modal = new bootstrap.Modal(
+            document.getElementById("attractionModal")
+          );
+          modal.show();
+        }
+      })
+      .catch((error) => {
+        console.error("获取景点详情失败:", error);
+        showError("获取景点详情失败");
+      });
+  }
+
+  // 导出数据
+  function exportData() {
+    // 这里可以实现数据导出功能
+    alert("导出功能开发中...");
+  }
+
+  // 显示加载状态
+  function showLoading() {
+    document.getElementById("tableBody").innerHTML = `
+        <tr>
+            <td colspan="10" class="text-center">
+                <div class="spinner-border" role="status">
+                    <span class="visually-hidden">加载中...</span>
+                </div>
+            </td>
+        </tr>
+    `;
+  }
+
+  // 隐藏加载状态
+  function hideLoading() {
+    // 加载完成后会自动替换内容，这里不需要操作
+  }
+
+  // 显示错误信息
+  function showError(message) {
+    document.getElementById("tableBody").innerHTML = `
+        <tr>
+            <td colspan="10" class="text-center text-danger">
+                <i class="fas fa-exclamation-triangle me-2"></i>${message}
+            </td>
+        </tr>
+    `;
+  }
+
+  // 绑定回车键搜索
+  document
+    .getElementById("searchInput")
+    .addEventListener("keypress", function (e) {
+      if (e.key === "Enter") {
+        applyFilters();
+      }
+    });
+</script>
+{% endblock %}

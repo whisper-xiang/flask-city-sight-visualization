@@ -96,6 +96,21 @@ class DataAnalyzer:
             'labels': [p[0] for p in top_provinces],
             'data': [p[1] for p in top_provinces]
         }
+
+    def get_city_distribution(self):
+        """获取城市分布数据"""
+        cities = db.session.query(Attraction.city).all()
+        city_list = [c[0] for c in cities if c[0]]
+
+        city_counts = Counter(city_list)
+
+        # 取前15个城市
+        top_cities = city_counts.most_common(15)
+
+        return {
+            'labels': [c[0] for c in top_cities],
+            'data': [c[1] for c in top_cities]
+        }
     
     def get_geo_distribution(self):
         """获取地理分布数据（用于地图展示）"""

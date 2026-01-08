@@ -91,6 +91,23 @@ body::before {
     font-weight: bold;
 }
 
+/* 避免头像下拉菜单被页面内容遮挡 */
+.navbar {
+  position: relative;
+  z-index: 1100;
+  overflow: visible;
+}
+
+.navbar .container,
+.navbar .navbar-collapse,
+.navbar .navbar-nav {
+  overflow: visible;
+}
+
+.dropdown-menu {
+  z-index: 2000;
+}
+
 footer {
     margin-top: auto;
 }

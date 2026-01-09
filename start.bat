@@ -1,95 +1,216 @@
 @echo off
-REM 一键启动脚本（Windows）
-REM 包含：MySQL检查、建库、建表、导入数据、启动Flask
+chcp 65001 >nul
+setlocal enabledelayedexpansion
 
-echo 🚀 城市景点可视化系统 - 一键启动脚本
+:: ========================================
+:: Flask城市景点可视化系统 - 通用启动脚本
+:: 版本: 2.0
+:: 适用于Windows环境
+:: ========================================
 
-REM 1. 检查 Python
+:: 设置颜色和标题
+color 0A
+title Flask城市景点可视化系统
+
+:: 显示启动信息
+echo.
+echo ========================================
+echo    Flask城市景点可视化系统启动器
+echo ========================================
+echo.
+
+:: 检查Python是否安装
+echo [1/6] 检查Python环境...
 python --version >nul 2>&1
 if errorlevel 1 (
-    echo ❌ 未找到 Python，请先安装 Python
+    echo [错误] 未找到Python，请先安装Python 3.8+
+    echo 下载地址: https://www.python.org/downloads/
     pause
     exit /b 1
 )
+for /f "tokens=2" %%i in ('python --version 2^>^&1') do set PYTHON_VERSION=%%i
+echo [成功] Python版本: %PYTHON_VERSION%
 
-REM 2. 检查虚拟环境
+:: 检查是否存在虚拟环境
+echo.
+echo [2/6] 检查虚拟环境...
 if not exist "venv" (
-    echo 📦 创建虚拟环境...
+    echo [信息] 创建虚拟环境...
     python -m venv venv
+    if errorlevel 1 (
+        echo [错误] 虚拟环境创建失败
+        pause
+        exit /b 1
+    )
+    echo [成功] 虚拟环境创建完成
 )
 
-echo 🔧 激活虚拟环境...
+:: 激活虚拟环境
+echo [信息] 激活虚拟环境...
 call venv\Scripts\activate.bat
-
-REM 确保构建工具可用（避免: Cannot import 'setuptools.build_meta'）
-python -m pip install -q --upgrade pip setuptools wheel
-
-REM 3. 安装依赖
-echo 📚 安装依赖...
-pip install -q -r requirements.txt
-
-REM 4. 检查 MySQL 服务（Windows）
-sc query mysql 2>nul | find "RUNNING" >nul
 if errorlevel 1 (
-    echo 🗄️ 尝试启动 MySQL 服务...
-    net start mysql
-    timeout /t 3 >nul
+    echo [错误] 虚拟环境激活失败
+    pause
+    exit /b 1
+)
+echo [成功] 虚拟环境已激活
+
+:: 升级pip
+echo.
+echo [3/6] 升级pip...
+python -m pip install --upgrade pip >nul 2>&1
+
+:: 安装依赖
+echo [信息] 安装项目依赖...
+if exist "requirements.txt" (
+    pip install -r requirements.txt
+    if errorlevel 1 (
+        echo [警告] 部分依赖安装失败，尝试继续...
+    )
 ) else (
-    echo ✅ MySQL 服务已运行
+    echo [警告] 未找到requirements.txt文件
 )
 
-REM 5. 处理 .env
+:: 检查环境配置文件
+echo.
+echo [4/6] 检查环境配置...
 if not exist ".env" (
-    copy .env.example .env >nul
+    echo [信息] 创建默认.env文件...
+    (
+        echo # 环境配置文件
+        echo SECRET_KEY=fc840e680036a77ef5e90ce7018e1f169d0724dd24ddc7525a4db0705ab69a53
+        echo FLASK_ENV=development
+        echo DEBUG=True
+        echo.
+        echo # 数据库配置
+        echo DATABASE_URL=mysql+pymysql://root:123456@localhost:3306/city_attractions
+        echo.
+        echo # 百度地图API（可选）
+        echo BAIDU_MAP_AK=
+    ) > .env
+    echo [成功] 已创建默认.env文件
 )
 
-REM 检查 SECRET_KEY 是否为默认值
-findstr /C:"dev-secret-key-change-in-production" .env >nul
-if not errorlevel 1 (
-    echo 🔑 生成新的 SECRET_KEY...
-    for /f "delims=" %%i in ('python -c "import secrets; print(secrets.token_hex())"') do set SECRET_KEY=%%i
-    powershell -Command "(Get-Content .env) -replace 'SECRET_KEY=.*', 'SECRET_KEY=%SECRET_KEY%' | Set-Content .env"
-)
-
-REM 6. 创建数据库（如果不存在）
-echo 🗃️ 检查/创建数据库...
-set DB_NAME=city_attractions
-set DB_USER=root
-set DB_PASS=password
-
-mysql -u%DB_USER% -p%DB_PASS% -e "USE %DB_NAME%;" 2>nul
+:: 检查数据库连接
+echo.
+echo [5/6] 检查数据库连接...
+python -c "import pymysql; print('PyMySQL已安装')" >nul 2>&1
 if errorlevel 1 (
-    echo 📝 创建数据库 %DB_NAME%...
-    mysql -u%DB_USER% -p%DB_PASS% -e "CREATE DATABASE IF NOT EXISTS %DB_NAME% CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
-) else (
-    echo ✅ 数据库 %DB_NAME% 已存在
+    echo [警告] PyMySQL未安装，尝试安装...
+    pip install pymysql
 )
 
-REM 7. 初始化表
-echo 🧱 初始化数据库表...
-python -c "from app import create_app, db; from app.models import Attraction, Review, Favorite, User; app = create_app(); app.app_context().push(); db.drop_all(); db.create_all(); print('✅ 数据库表初始化完成')"
+:: 创建数据库表（如果需要）
+echo [信息] 初始化数据库...
+python -c "
+try:
+    from app import create_app, db
+    app = create_app()
+    with app.app_context():
+        db.create_all()
+        print('[成功] 数据库表初始化完成')
+except Exception as e:
+    print(f'[警告] 数据库初始化失败: {e}')
+    print('请检查数据库配置和连接')
+"
 
-REM 8. 导入数据（如果 data/ 目录有 CSV）
-if exist "data\cleaned_attractions.csv" (
-    echo 📥 发现清洗后的数据文件，开始导入...
-    python import_data.py data/cleaned_attractions.csv
-) else if exist "data\attractions_export.csv" (
-    echo 📥 发现导出数据文件，开始导入...
-    python import_data.py data/attractions_export.csv
-) else if exist "data\china_city_attraction_details.csv" (
-    echo 📥 发现原始数据文件，开始导入...
-    python import_data.py data/china_city_attraction_details.csv
+:: 启动选项菜单
+echo.
+echo [6/6] 启动选项
+echo ========================================
+echo 1. 启动开发服务器 (默认)
+echo 2. 启动调试模式
+echo 3. 检查系统状态
+echo 4. 退出
+echo ========================================
+set /p choice="请选择启动方式 (1-4，默认1): "
+
+if "%choice%"=="" set choice=1
+
+if "%choice%"=="1" (
+    echo.
+    echo [启动] 启动Flask开发服务器...
+    echo [信息] 服务器地址: http://localhost:5001
+    echo [信息] 按 Ctrl+C 停止服务器
+    echo.
+    python run.py
+) else if "%choice%"=="2" (
+    echo.
+    echo [启动] 启动调试模式...
+    echo [信息] 调试模式已启用
+    echo [信息] 服务器地址: http://localhost:5001
+    echo.
+    set FLASK_DEBUG=1
+    python run.py
+) else if "%choice%"=="3" (
+    echo.
+    echo [检查] 系统状态检查...
+    echo ========================================
+    
+    :: Python版本
+    echo Python版本:
+    python --version
+    
+    echo.
+    echo 虚拟环境:
+    if defined VIRTUAL_ENV (
+        echo [激活] %VIRTUAL_ENV%
+    ) else (
+        echo [未激活] 虚拟环境未激活
+    )
+    
+    echo.
+    echo 关键依赖检查:
+    for %%p in (flask sqlalchemy flask-login pandas numpy matplotlib) do (
+        python -c "import %%p; print('  [OK] %%p')" 2>nul || echo "  [缺失] %%p"
+    )
+    
+    echo.
+    echo 数据库连接测试:
+    python -c "
+try:
+    from app import create_app, db
+    app = create_app()
+    with app.app_context():
+        from app.models import Attraction
+        count = Attraction.query.count()
+        print(f'  [成功] 数据库连接正常，景点数量: {count}')
+except Exception as e:
+    print(f'  [失败] 数据库连接失败: {e}')
+"
+    
+    echo.
+    echo 配置文件:
+    if exist ".env" (
+        echo [存在] .env文件
+    ) else (
+        echo [缺失] .env文件
+    )
+    
+    echo ========================================
+    echo.
+    pause
+    goto :start_menu
+) else if "%choice%"=="4" (
+    echo.
+    echo [退出] 退出启动器
+    goto :end
 ) else (
-    echo ℹ️ 未发现可用的 CSV 数据文件，跳过导入
+    echo [错误] 无效选择，使用默认选项
+    echo.
+    echo [启动] 启动Flask开发服务器...
+    python run.py
 )
 
-REM 9. 启动 Flask
-echo 🌐 启动 Flask 服务...
-set FLASK_ENV=development
-set FLASK_APP=run.py
+:start_menu
+echo.
+echo 是否重新选择启动选项？(Y/N)
+set /p retry="请输入选择: "
+if /i "%retry%"=="Y" goto :start
+if /i "%retry%"=="y" goto :start
 
+:end
 echo.
-echo 🎉 启动完成！访问: http://localhost:5000
+echo [完成] 感谢使用Flask城市景点可视化系统！
 echo.
-python run.py
 pause

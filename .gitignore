@@ -62,7 +62,6 @@ db.sqlite3
 db.sqlite3-journal
 
 # Flask stuff:
-instance/
 .webassets-cache
 
 # Scrapy stuff:
@@ -128,14 +127,10 @@ dmypy.json
 .pyre/
 
 # Flask specific
-*.db
 *.sqlite
 *.sqlite3
-instance/
 
 # Data files
-data/*.csv
-data/*.json
 data/*.xlsx
 data/*.xls
 !data/.gitkeep

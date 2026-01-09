@@ -1,0 +1,2 @@
+﻿id,username,email,password_hash,created_at
+1,admin,admin@example.com,pbkdf2:sha256:600000$RZQErqQnRtyVtH0d$a2d44646c4b7b286f6e239c4e07c3100f64739c34d17218030fb8163aba01255,2026-01-06 09:25:39.227685
